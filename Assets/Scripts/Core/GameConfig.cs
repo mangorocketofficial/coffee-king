@@ -23,6 +23,10 @@ namespace CoffeeKing.Core
         public Vector2 SyrupBottleSize;
         public Vector2 CustomerSize;
         public Vector2 SpeechBubbleSize;
+        public Vector2 GrinderSize;
+        public Vector2 TamperSize;
+        public Vector2 ShotGlassSize;
+        public Vector2 WaterBottleSize;
 
         public Vector3 WallPosition;
         public Vector3 CounterPosition;
@@ -40,6 +44,11 @@ namespace CoffeeKing.Core
         public Vector3 SyrupBottlePosition;
         public Vector3 CustomerPosition;
         public Vector3 SpeechBubblePosition;
+        public Vector3 GrinderPosition;
+        public Vector3 PortafilterWorkbenchPosition;
+        public Vector3 TamperPosition;
+        public Vector3 ShotGlassPosition;
+        public Vector3 WaterBottlePosition;
 
         public float PortafilterSnapDistance;
         public float PortafilterLockAngle;
@@ -65,6 +74,22 @@ namespace CoffeeKing.Core
         public float SteamGoodMax;
         public float SteamHeatMinPerSecond;
         public float SteamHeatMaxPerSecond;
+        public float GrinderSnapDistance;
+        public float ShotPourSnapDistance;
+        public float GrindingGaugeMin;
+        public float GrindingGaugeMax;
+        public float GrindingGaugeSpeed;
+        public float GrindingPerfectMin;
+        public float GrindingPerfectMax;
+        public float GrindingGoodMin;
+        public float GrindingGoodMax;
+        public float TampingGaugeMin;
+        public float TampingGaugeMax;
+        public float TampingGaugeSpeed;
+        public float TampingPerfectMin;
+        public float TampingPerfectMax;
+        public float TampingGoodMin;
+        public float TampingGoodMax;
 
         public Color WallColor;
         public Color CounterColor;
@@ -127,6 +152,10 @@ namespace CoffeeKing.Core
             SyrupBottleSize = new Vector2(0.72f, 1.5f);
             CustomerSize = new Vector2(1.5f, 2.1f);
             SpeechBubbleSize = new Vector2(2.6f, 1.0f);
+            GrinderSize = new Vector2(1.75f, 2.3f);
+            TamperSize = new Vector2(0.9f, 1.15f);
+            ShotGlassSize = new Vector2(0.55f, 0.85f);
+            WaterBottleSize = new Vector2(0.8f, 1.8f);
 
             WallPosition = new Vector3(0f, 1.95f, 0f);
             CounterPosition = new Vector3(0f, -3f, 0f);
@@ -144,6 +173,11 @@ namespace CoffeeKing.Core
             SyrupBottlePosition = new Vector3(-5.75f, -2.0f, 0f);
             CustomerPosition = new Vector3(5.45f, 1.15f, 0f);
             SpeechBubblePosition = new Vector3(5.4f, 2.75f, 0f);
+            GrinderPosition = new Vector3(-3.25f, -0.9f, 0f);
+            PortafilterWorkbenchPosition = new Vector3(-5.45f, -2.0f, 0f);
+            TamperPosition = new Vector3(-4.15f, -0.85f, 0f);
+            ShotGlassPosition = new Vector3(0.25f, -1.55f, 0f);
+            WaterBottlePosition = new Vector3(-6.15f, -1.95f, 0f);
 
             PortafilterSnapDistance = 1.05f;
             PortafilterLockAngle = 95f;
@@ -169,6 +203,22 @@ namespace CoffeeKing.Core
             SteamGoodMax = 75f;
             SteamHeatMinPerSecond = 0.5f;
             SteamHeatMaxPerSecond = 3f;
+            GrinderSnapDistance = 1.0f;
+            ShotPourSnapDistance = 1.0f;
+            GrindingGaugeMin = 0f;
+            GrindingGaugeMax = 100f;
+            GrindingGaugeSpeed = 65f;
+            GrindingPerfectMin = 70f;
+            GrindingPerfectMax = 78f;
+            GrindingGoodMin = 60f;
+            GrindingGoodMax = 85f;
+            TampingGaugeMin = 0f;
+            TampingGaugeMax = 100f;
+            TampingGaugeSpeed = 70f;
+            TampingPerfectMin = 68f;
+            TampingPerfectMax = 76f;
+            TampingGoodMin = 55f;
+            TampingGoodMax = 85f;
 
             WallColor = ColorPalette.Wall;
             CounterColor = ColorPalette.Counter;

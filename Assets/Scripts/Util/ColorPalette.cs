@@ -12,7 +12,7 @@ namespace CoffeeKing.Util
         public static readonly Color MachineSlotSnap = new Color(0.94f, 0.70f, 0.21f);
         public static readonly Color MachineSlotLocked = new Color(0.30f, 0.79f, 0.48f);
         public static readonly Color IngredientTray = new Color(0.83f, 0.67f, 0.43f);
-        public static readonly Color PortafilterIdle = new Color(0.40f, 0.24f, 0.13f);
+        public static readonly Color PortafilterIdle = new Color(0.96f, 0.82f, 0.24f);
         public static readonly Color PortafilterSnap = new Color(0.86f, 0.57f, 0.16f);
         public static readonly Color PortafilterLocked = new Color(0.24f, 0.66f, 0.42f);
         public static readonly Color CupEmpty = new Color(0.93f, 0.92f, 0.88f);

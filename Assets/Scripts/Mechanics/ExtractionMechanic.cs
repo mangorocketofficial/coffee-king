@@ -2,6 +2,7 @@ using System;
 using CoffeeKing.Core;
 using CoffeeKing.GameInput;
 using CoffeeKing.Scoring;
+using CoffeeKing.Util;
 using CoffeeKing.View;
 using UnityEngine;
 
@@ -34,6 +35,12 @@ namespace CoffeeKing.Mechanics
             active = true;
             extracting = false;
             currentValue = config.ExtractionGaugeMin;
+            if (sceneContext?.ShotGlassRoot != null)
+            {
+                sceneContext.ShotGlassRoot.position = sceneContext.ShotGlassPosition;
+                sceneContext.ShotGlassRoot.gameObject.SetActive(true);
+                sceneContext.SetShotGlassVisual(SpriteAssetNames.ShotGlassEmpty, config.ShotGlassSize, config.CupEspressoColor);
+            }
             sceneContext.ExtractionButtonRenderer.color = config.ExtractionButtonActiveColor;
             sceneContext.ExtractionButtonRenderer.gameObject.SetActive(true);
             sceneContext.GaugeView.SetVisible(true);
@@ -64,6 +71,7 @@ namespace CoffeeKing.Mechanics
             currentValue += config.ExtractionGaugeSpeed * Time.deltaTime;
             var normalized = currentValue / config.ExtractionGaugeMax;
             sceneContext.GaugeView.SetValue(normalized, $"{Mathf.Clamp(currentValue, 0f, config.ExtractionGaugeMax):0.0}");
+            UpdateShotGlassVisual(normalized);
 
             if (currentValue >= config.ExtractionGaugeMax)
             {
@@ -104,6 +112,7 @@ namespace CoffeeKing.Mechanics
         {
             active = false;
             extracting = false;
+            sceneContext?.SetShotGlassVisual(SpriteAssetNames.ShotGlassFull, config.ShotGlassSize, config.CupEspressoColor);
             HideVisuals();
             Completed?.Invoke(EvaluateResult());
         }
@@ -133,6 +142,27 @@ namespace CoffeeKing.Mechanics
             }
 
             sceneContext?.GaugeView?.SetVisible(false);
+        }
+
+        private void UpdateShotGlassVisual(float normalized)
+        {
+            if (sceneContext?.ShotGlassRenderer == null)
+            {
+                return;
+            }
+
+            if (normalized < 0.35f)
+            {
+                sceneContext.SetShotGlassVisual(SpriteAssetNames.ShotGlassEmpty, config.ShotGlassSize, config.CupEspressoColor);
+            }
+            else if (normalized < 0.8f)
+            {
+                sceneContext.SetShotGlassVisual(SpriteAssetNames.ShotGlassFilling, config.ShotGlassSize, config.CupEspressoColor);
+            }
+            else
+            {
+                sceneContext.SetShotGlassVisual(SpriteAssetNames.ShotGlassFull, config.ShotGlassSize, config.CupEspressoColor);
+            }
         }
 
         private void Subscribe()

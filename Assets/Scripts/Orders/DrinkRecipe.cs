@@ -4,19 +4,39 @@ namespace CoffeeKing.Orders
 {
     public enum RecipeStep
     {
-        Portafilter,
+        MoveToGrinder,
+        Grinding,
+        Tamping,
+        PortafilterLock,
         Extraction,
-        Syrup,
+        CupSetup,
+        PourShot,
+        Ingredient,
+        Lid,
+        Serve,
         SteamMilk,
-        Serve
+        Syrup
+    }
+
+    public enum IngredientType
+    {
+        Water,
+        Milk
     }
 
     public sealed class DrinkRecipe
     {
-        public DrinkRecipe(string id, string displayName, Color baseCupColor, Color finalCupColor, params RecipeStep[] steps)
+        public DrinkRecipe(
+            string id,
+            string displayName,
+            IngredientType ingredientType,
+            Color baseCupColor,
+            Color finalCupColor,
+            params RecipeStep[] steps)
         {
             Id = id;
             DisplayName = displayName;
+            IngredientType = ingredientType;
             BaseCupColor = baseCupColor;
             FinalCupColor = finalCupColor;
             Steps = steps;
@@ -24,6 +44,7 @@ namespace CoffeeKing.Orders
 
         public string Id { get; }
         public string DisplayName { get; }
+        public IngredientType IngredientType { get; }
         public Color BaseCupColor { get; }
         public Color FinalCupColor { get; }
         public RecipeStep[] Steps { get; }

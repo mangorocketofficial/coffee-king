@@ -1,5 +1,6 @@
 using System.Collections;
 using CoffeeKing.CustomerLogic;
+using CoffeeKing.Flow;
 using CoffeeKing.GameInput;
 using CoffeeKing.Mechanics;
 using CoffeeKing.Orders;
@@ -17,10 +18,12 @@ namespace CoffeeKing.Core
         Bootstrapping,
         TitleScreen,
         WaitingForOrder,
+        GrindingStep,
+        TampingStep,
         PortafilterStep,
         ExtractionStep,
-        SyrupStep,
-        SteamStep,
+        PourShotStep,
+        IngredientStep,
         ServingStep,
         StageResult
     }
@@ -34,28 +37,28 @@ namespace CoffeeKing.Core
         private GameConfig config;
         private GrayboxSceneContext sceneContext;
         private GestureDetector gestureDetector;
+        private AudioManager audioManager;
+        private GrindingMechanic grindingMechanic;
+        private TampingMechanic tampingMechanic;
         private PortafilterMechanic portafilterMechanic;
         private ExtractionMechanic extractionMechanic;
-        private SyrupMechanic syrupMechanic;
-        private SteamMilkMechanic steamMilkMechanic;
+        private PourMechanic pourMechanic;
+        private IngredientMechanic ingredientMechanic;
         private ServingMechanic servingMechanic;
         private ScoreManager scoreManager;
         private CustomerSpawner customerSpawner;
         private ResultScreenView resultScreenView;
         private StageManager stageManager;
         private UIContext uiContext;
-        private AudioManager audioManager;
+        private DrinkFlowController drinkFlowController;
 
         private Customer currentCustomer;
         private DrinkRecipe currentRecipe;
         private Coroutine introCoroutine;
-        private Coroutine tutorialHideCoroutine;
-        private Coroutine rotateHintCoroutine;
+        private Coroutine cupSetupCoroutine;
         private float roundStartTime;
+        private float lockStepStartTime;
         private bool initialized;
-        private bool dragHintShown;
-        private bool rotateHintShown;
-        private bool gaugeHintShown;
 
         private void Awake()
         {
@@ -107,6 +110,16 @@ namespace CoffeeKing.Core
 
         private void OnDestroy()
         {
+            if (grindingMechanic != null)
+            {
+                grindingMechanic.Completed -= HandleGrindingCompleted;
+            }
+
+            if (tampingMechanic != null)
+            {
+                tampingMechanic.Completed -= HandleTampingCompleted;
+            }
+
             if (portafilterMechanic != null)
             {
                 portafilterMechanic.Locked -= HandlePortafilterLocked;
@@ -117,14 +130,14 @@ namespace CoffeeKing.Core
                 extractionMechanic.Completed -= HandleExtractionCompleted;
             }
 
-            if (syrupMechanic != null)
+            if (pourMechanic != null)
             {
-                syrupMechanic.Completed -= HandleSyrupCompleted;
+                pourMechanic.Completed -= HandlePourCompleted;
             }
 
-            if (steamMilkMechanic != null)
+            if (ingredientMechanic != null)
             {
-                steamMilkMechanic.Completed -= HandleSteamCompleted;
+                ingredientMechanic.Completed -= HandleIngredientCompleted;
             }
 
             if (servingMechanic != null)
@@ -155,14 +168,9 @@ namespace CoffeeKing.Core
                 StopCoroutine(introCoroutine);
             }
 
-            if (tutorialHideCoroutine != null)
+            if (cupSetupCoroutine != null)
             {
-                StopCoroutine(tutorialHideCoroutine);
-            }
-
-            if (rotateHintCoroutine != null)
-            {
-                StopCoroutine(rotateHintCoroutine);
+                StopCoroutine(cupSetupCoroutine);
             }
 
             if (Instance == this)
@@ -186,27 +194,35 @@ namespace CoffeeKing.Core
             config = GameConfig.CreateRuntimeDefault();
             sceneContext = new GameSceneBuilder().Build(config);
             scoreManager = new ScoreManager();
-            var recipes = DrinkLibrary.CreatePhaseOneDemo(config);
+            drinkFlowController = new DrinkFlowController();
+
+            var recipes = DrinkLibrary.CreateRebootPhaseOne(config);
             stageManager = new StageManager(StageLibrary.Create(recipes));
 
             gestureDetector = CreateSubsystem<GestureDetector>("[GestureDetector]");
             audioManager = CreateSubsystem<AudioManager>("[AudioManager]");
+            grindingMechanic = CreateSubsystem<GrindingMechanic>("[GrindingMechanic]");
+            tampingMechanic = CreateSubsystem<TampingMechanic>("[TampingMechanic]");
             portafilterMechanic = CreateSubsystem<PortafilterMechanic>("[PortafilterMechanic]");
             extractionMechanic = CreateSubsystem<ExtractionMechanic>("[ExtractionMechanic]");
-            syrupMechanic = CreateSubsystem<SyrupMechanic>("[SyrupMechanic]");
-            steamMilkMechanic = CreateSubsystem<SteamMilkMechanic>("[SteamMilkMechanic]");
+            pourMechanic = CreateSubsystem<PourMechanic>("[PourMechanic]");
+            ingredientMechanic = CreateSubsystem<IngredientMechanic>("[IngredientMechanic]");
             servingMechanic = CreateSubsystem<ServingMechanic>("[ServingMechanic]");
 
+            grindingMechanic.Initialize(config, gestureDetector, sceneContext);
+            tampingMechanic.Initialize(config, gestureDetector, sceneContext);
             portafilterMechanic.Initialize(config, gestureDetector, sceneContext);
             extractionMechanic.Initialize(config, gestureDetector, sceneContext);
-            syrupMechanic.Initialize(gestureDetector, sceneContext);
-            steamMilkMechanic.Initialize(config, gestureDetector, sceneContext);
+            pourMechanic.Initialize(config, gestureDetector, sceneContext);
+            ingredientMechanic.Initialize(gestureDetector, sceneContext);
             servingMechanic.Initialize(config, gestureDetector, sceneContext);
 
+            grindingMechanic.Completed += HandleGrindingCompleted;
+            tampingMechanic.Completed += HandleTampingCompleted;
             portafilterMechanic.Locked += HandlePortafilterLocked;
             extractionMechanic.Completed += HandleExtractionCompleted;
-            syrupMechanic.Completed += HandleSyrupCompleted;
-            steamMilkMechanic.Completed += HandleSteamCompleted;
+            pourMechanic.Completed += HandlePourCompleted;
+            ingredientMechanic.Completed += HandleIngredientCompleted;
             servingMechanic.Served += HandleServed;
 
             customerSpawner = new CustomerSpawner();
@@ -230,11 +246,11 @@ namespace CoffeeKing.Core
             resultScreenView.Hide();
             uiContext.HUDView.SetVisible(false);
             uiContext.TutorialOverlay.Hide();
-            uiContext.TitleScreenView.Show("Programmatic graybox build");
+            uiContext.TitleScreenView.Show("V2 Reboot - Iced Americano Slice");
 
-            sceneContext.SetInstruction("Coffee Meister");
+            sceneContext.SetInstruction("Coffee King");
             sceneContext.SetStatus("Press start");
-            sceneContext.SetFeedback("Title screen ready", ColorPalette.HighlightGood);
+            sceneContext.SetFeedback("Reboot slice ready", ColorPalette.HighlightGood);
             sceneContext.SetActiveOrder(string.Empty);
             sceneContext.SetQueueSummary(string.Empty);
             sceneContext.SetScore(string.Empty);
@@ -242,6 +258,7 @@ namespace CoffeeKing.Core
 
             currentCustomer = null;
             currentRecipe = null;
+            drinkFlowController.Reset();
             SetState(GameState.TitleScreen);
         }
 
@@ -259,11 +276,11 @@ namespace CoffeeKing.Core
                 StopCoroutine(introCoroutine);
             }
 
-            CancelTutorial();
             CancelCurrentOrder();
             resultScreenView.Hide();
             uiContext.HUDView.SetVisible(true);
             uiContext.TitleScreenView.Hide();
+            uiContext.TutorialOverlay.Hide();
 
             currentCustomer = null;
             currentRecipe = null;
@@ -271,7 +288,7 @@ namespace CoffeeKing.Core
             customerSpawner.BeginStage(stage, System.Environment.TickCount ^ stage.Number);
             scoreManager.BeginStage(stage, customerSpawner.PlannedCustomers);
 
-            sceneContext.SetRound($"{stage.DisplayName}   Customers {stage.CustomerCount}   Cap {stage.MaxSimultaneousCustomers}");
+            sceneContext.SetRound($"{stage.DisplayName}   Customers {stage.CustomerCount}   Americano Only");
             sceneContext.SetInstruction(stage.DisplayName);
             sceneContext.SetStatus("Stage intro");
             sceneContext.SetFeedback($"Get ready for {stage.DisplayName}", ColorPalette.HighlightGood);
@@ -279,17 +296,17 @@ namespace CoffeeKing.Core
             sceneContext.SetQueueSummary("Queue closed during intro");
             RefreshHud();
 
-            introCoroutine = StartCoroutine(RunStageIntro(stage));
+            introCoroutine = StartCoroutine(RunStageIntro());
         }
 
-        private IEnumerator RunStageIntro(StageData stage)
+        private IEnumerator RunStageIntro()
         {
             yield return new WaitForSeconds(2f);
             introCoroutine = null;
 
             stageManager.MarkPlaying();
             customerSpawner.StartSpawning();
-            sceneContext.SetInstruction("Serve customers before their patience runs out.");
+            sceneContext.SetInstruction("Make iced americanos before patience runs out.");
             sceneContext.SetStatus("Queue open");
             sceneContext.SetFeedback(string.Empty, config.SecondaryTextColor);
             SetState(GameState.WaitingForOrder);
@@ -302,54 +319,121 @@ namespace CoffeeKing.Core
             roundStartTime = Time.time;
 
             scoreManager.BeginRound(customer);
-            ResetDrinkState();
-            portafilterMechanic.BeginRound();
+            ResetDrinkVisuals();
+            drinkFlowController.StartDrink(currentRecipe);
+            TransitionDrinkState(drinkFlowController.CurrentState);
+        }
 
-            sceneContext.SetActiveOrder($"Now making\nCustomer {customer.SequenceNumber}\n{currentRecipe.DisplayName}");
-            sceneContext.SetInstruction("Drag the portafilter into the machine slot and rotate to lock it.");
-            sceneContext.SetStatus("Active ticket claimed from queue.");
-            sceneContext.SetFeedback(string.Empty, config.SecondaryTextColor);
-            SetState(GameState.PortafilterStep);
-
-            if (ShouldShowStageOneTutorial() && !dragHintShown)
+        private void TransitionDrinkState(DrinkFlowState state)
+        {
+            switch (state)
             {
-                dragHintShown = true;
-                ShowTutorialHint(
-                    "Stage 1 Hint",
-                    "Drag the portafilter to the machine.",
-                    new Vector2(-360f, 220f),
-                    new Vector2(-430f, 40f),
-                    2.4f);
-            }
+                case DrinkFlowState.MoveToGrinder:
+                    sceneContext.SetActiveOrder($"Now making\n{currentRecipe.DisplayName}");
+                    sceneContext.SetInstruction("Drag the empty portafilter to the grinder.");
+                    sceneContext.SetStatus("Move to grinder, then hold to grind.");
+                    sceneContext.SetFeedback(string.Empty, config.SecondaryTextColor);
+                    grindingMechanic.BeginStep();
+                    SetState(GameState.GrindingStep);
+                    break;
 
-            if (ShouldShowStageOneTutorial() && !rotateHintShown)
-            {
-                if (rotateHintCoroutine != null)
-                {
-                    StopCoroutine(rotateHintCoroutine);
-                }
+                case DrinkFlowState.Tamping:
+                    sceneContext.SetInstruction("Hold the tamper and release in the green zone.");
+                    sceneContext.SetStatus("Compress the coffee bed.");
+                    tampingMechanic.BeginStep();
+                    SetState(GameState.TampingStep);
+                    break;
 
-                rotateHintCoroutine = StartCoroutine(ShowRotateHintAfterDelay(1.4f));
+                case DrinkFlowState.PortafilterLocking:
+                    sceneContext.SetInstruction("Drag the tamped portafilter to the machine and rotate to lock.");
+                    sceneContext.SetStatus("Lock the portafilter into the machine.");
+                    sceneContext.SetMachineVisual(SpriteAssetNames.MachineEmpty, config.MachineSize, config.MachineColor);
+                    lockStepStartTime = Time.time;
+                    portafilterMechanic.BeginRound();
+                    SetState(GameState.PortafilterStep);
+                    break;
+
+                case DrinkFlowState.Extracting:
+                    sceneContext.SetInstruction("Tap to start extraction, then tap in the green zone.");
+                    sceneContext.SetStatus("Pull the espresso shot.");
+                    extractionMechanic.BeginStep();
+                    SetState(GameState.ExtractionStep);
+                    break;
+
+                case DrinkFlowState.CupSetup:
+                    sceneContext.SetInstruction("Set up the iced cup.");
+                    sceneContext.SetStatus("Cup and ice are being prepared.");
+                    if (cupSetupCoroutine != null)
+                    {
+                        StopCoroutine(cupSetupCoroutine);
+                    }
+
+                    cupSetupCoroutine = StartCoroutine(RunCupSetup());
+                    break;
+
+                case DrinkFlowState.PourShotToCup:
+                    sceneContext.SetInstruction("Drag the shot glass into the iced cup.");
+                    sceneContext.SetStatus("Pour the espresso shot.");
+                    pourMechanic.BeginStep();
+                    SetState(GameState.PourShotStep);
+                    break;
+
+                case DrinkFlowState.PourIngredient:
+                    sceneContext.SetInstruction("Tap the water bottle to finish the americano.");
+                    sceneContext.SetStatus("Pour water into the cup.");
+                    ingredientMechanic.BeginStep();
+                    SetState(GameState.IngredientStep);
+                    break;
+
+                case DrinkFlowState.Serving:
+                    sceneContext.SetInstruction("Drag the finished drink to the customer.");
+                    sceneContext.SetStatus("Serve the iced americano.");
+                    servingMechanic.BeginStep();
+                    SetState(GameState.ServingStep);
+                    break;
+
+                case DrinkFlowState.Scoring:
+                    SetState(GameState.WaitingForOrder);
+                    break;
             }
         }
 
-        private IEnumerator ShowRotateHintAfterDelay(float delay)
+        private IEnumerator RunCupSetup()
         {
-            yield return new WaitForSeconds(delay);
-            rotateHintCoroutine = null;
+            sceneContext.CupRoot.position = sceneContext.CupAnchorPosition;
+            sceneContext.CupRoot.gameObject.SetActive(true);
+            sceneContext.SetCupVisual(SpriteAssetNames.CupPlasticEmpty, config.CupSize, config.CupEmptyColor);
+            yield return new WaitForSeconds(0.35f);
+            sceneContext.SetCupVisual(SpriteAssetNames.CupPlasticIce, config.CupSize, config.CupEmptyColor);
+            yield return new WaitForSeconds(0.35f);
+            cupSetupCoroutine = null;
+            TransitionDrinkState(drinkFlowController.Advance());
+        }
 
-            if (!ShouldShowStageOneTutorial() || rotateHintShown || currentCustomer == null)
+        private void HandleGrindingCompleted(MechanicScoreResult result)
+        {
+            if (currentCustomer == null || State != GameState.GrindingStep)
             {
-                yield break;
+                return;
             }
 
-            rotateHintShown = true;
-            ShowTutorialHint(
-                "Stage 1 Hint",
-                "Rotate to lock the handle in place.",
-                new Vector2(-140f, 220f),
-                new Vector2(0f, 30f),
-                2.6f);
+            audioManager.PlayGauge(result.Grade);
+            scoreManager.AddResult(result);
+            sceneContext.SetFeedback($"{FormatGrade(result.Grade)} grinding {result.MeasuredValue:0.0}", GradeToColor(result.Grade));
+            TransitionDrinkState(drinkFlowController.Advance());
+        }
+
+        private void HandleTampingCompleted(MechanicScoreResult result)
+        {
+            if (currentCustomer == null || State != GameState.TampingStep)
+            {
+                return;
+            }
+
+            audioManager.PlayGauge(result.Grade);
+            scoreManager.AddResult(result);
+            sceneContext.SetFeedback($"{FormatGrade(result.Grade)} tamping {result.MeasuredValue:0.0}", GradeToColor(result.Grade));
+            TransitionDrinkState(drinkFlowController.Advance());
         }
 
         private void HandlePortafilterLocked()
@@ -360,23 +444,10 @@ namespace CoffeeKing.Core
             }
 
             audioManager.PlaySnap();
-            scoreManager.AddScore("Lock", ScoreRules.PortafilterLockScore);
-            sceneContext.SetFeedback("Portafilter locked", ColorPalette.HighlightGood);
-            sceneContext.SetInstruction("Tap the brew button to start extraction. Tap again in the green zone.");
-            sceneContext.SetStatus("Extraction target: 65 to 72");
-            extractionMechanic.BeginStep();
-            SetState(GameState.ExtractionStep);
-
-            if (ShouldShowStageOneTutorial() && !gaugeHintShown)
-            {
-                gaugeHintShown = true;
-                ShowTutorialHint(
-                    "Stage 1 Hint",
-                    "Tap in the green zone for the best score.",
-                    new Vector2(0f, 220f),
-                    new Vector2(0f, 120f),
-                    2.8f);
-            }
+            var result = EvaluateLockResult(Time.time - lockStepStartTime);
+            scoreManager.AddResult(result);
+            sceneContext.SetFeedback($"{FormatGrade(result.Grade)} lock", GradeToColor(result.Grade));
+            TransitionDrinkState(drinkFlowController.Advance());
         }
 
         private void HandleExtractionCompleted(MechanicScoreResult result)
@@ -388,81 +459,32 @@ namespace CoffeeKing.Core
 
             audioManager.PlayGauge(result.Grade);
             scoreManager.AddResult(result);
-            SetCupStateAfterExtraction();
-            sceneContext.SetFeedback(
-                $"{FormatGrade(result.Grade)} extraction {result.MeasuredValue:0.0}",
-                GradeToColor(result.Grade));
-
-            if (currentRecipe.HasStep(RecipeStep.Syrup))
-            {
-                sceneContext.SetInstruction("Tap the syrup bottle to add vanilla syrup.");
-                sceneContext.SetStatus("Syrup step");
-                syrupMechanic.BeginStep();
-                SetState(GameState.SyrupStep);
-                return;
-            }
-
-            if (currentRecipe.HasStep(RecipeStep.SteamMilk))
-            {
-                BeginSteamStep();
-                return;
-            }
-
-            BeginServingStep();
+            sceneContext.SetFeedback($"{FormatGrade(result.Grade)} extraction {result.MeasuredValue:0.0}", GradeToColor(result.Grade));
+            TransitionDrinkState(drinkFlowController.Advance());
         }
 
-        private void HandleSyrupCompleted()
+        private void HandlePourCompleted()
         {
-            if (currentCustomer == null || State != GameState.SyrupStep)
+            if (currentCustomer == null || State != GameState.PourShotStep)
             {
                 return;
             }
 
-            scoreManager.AddScore("Syrup", ScoreRules.SyrupScore);
-            sceneContext.SetCupVisual(SpriteAssetNames.CupVanilla, config.CupSize, config.CupVanillaColor);
-            sceneContext.SetFeedback("Vanilla syrup added", config.CupVanillaColor);
-
-            if (currentRecipe.HasStep(RecipeStep.SteamMilk))
-            {
-                BeginSteamStep();
-                return;
-            }
-
-            BeginServingStep();
+            sceneContext.SetCupVisual(SpriteAssetNames.CupPlasticShot, config.CupSize, currentRecipe.BaseCupColor);
+            sceneContext.SetFeedback("Shot poured into the cup", ColorPalette.HighlightGood);
+            TransitionDrinkState(drinkFlowController.Advance());
         }
 
-        private void BeginSteamStep()
+        private void HandleIngredientCompleted()
         {
-            sceneContext.SetInstruction("Drag the steam wand into the pitcher, move it up or down, then tap to stop.");
-            sceneContext.SetStatus("Milk target: 60C to 70C. Over 75C burns it.");
-            steamMilkMechanic.BeginStep();
-            SetState(GameState.SteamStep);
-        }
-
-        private void HandleSteamCompleted(MechanicScoreResult result)
-        {
-            if (currentCustomer == null || State != GameState.SteamStep)
+            if (currentCustomer == null || State != GameState.IngredientStep)
             {
                 return;
             }
 
-            audioManager.PlayGauge(result.Grade);
-            scoreManager.AddResult(result);
-            SetCupStateForFinalDrink();
-            sceneContext.SetFeedback(
-                $"{FormatGrade(result.Grade)} steam {result.MeasuredValue:0.0}C",
-                GradeToColor(result.Grade));
-
-            BeginServingStep();
-        }
-
-        private void BeginServingStep()
-        {
-            SetCupStateForFinalDrink();
-            sceneContext.SetInstruction("Drag the completed drink into the serving zone.");
-            sceneContext.SetStatus("Serve the active customer.");
-            servingMechanic.BeginStep();
-            SetState(GameState.ServingStep);
+            sceneContext.SetCupVisual(SpriteAssetNames.CupPlasticAmericano, config.CupSize, currentRecipe.FinalCupColor);
+            sceneContext.SetFeedback("Water added", ColorPalette.HighlightGood);
+            TransitionDrinkState(drinkFlowController.Advance());
         }
 
         private void HandleServed()
@@ -473,18 +495,16 @@ namespace CoffeeKing.Core
             }
 
             audioManager.PlayServe();
-            scoreManager.AddScore("Serve", ScoreRules.ServeScore);
             var orderDuration = Time.time - roundStartTime;
-            var speedBonus = scoreManager.FinalizeServedRound(currentCustomer, orderDuration);
+            scoreManager.FinalizeServedRound(currentCustomer, orderDuration);
             customerSpawner.MarkServed(currentCustomer);
 
-            sceneContext.SetFeedback(
-                speedBonus > 0 ? $"{currentRecipe.DisplayName} served  speed +{speedBonus}" : $"{currentRecipe.DisplayName} served",
-                ColorPalette.HighlightGood);
+            sceneContext.SetFeedback($"{currentRecipe.DisplayName} served", ColorPalette.HighlightGood);
             sceneContext.SetStatus("Looking for next ticket.");
-
+            drinkFlowController.Reset();
             currentCustomer = null;
             currentRecipe = null;
+            ResetDrinkVisuals();
             SetState(GameState.WaitingForOrder);
         }
 
@@ -498,6 +518,7 @@ namespace CoffeeKing.Core
                 CancelCurrentOrder();
                 currentCustomer = null;
                 currentRecipe = null;
+                drinkFlowController.Reset();
                 SetState(GameState.WaitingForOrder);
             }
         }
@@ -506,7 +527,6 @@ namespace CoffeeKing.Core
         {
             stageManager.MarkStageComplete();
             CancelCurrentOrder();
-            CancelTutorial();
 
             var stars = StarRating.FromScore(scoreManager.StageScore, scoreManager.StageMaxScore);
             var result = stageManager.BuildResult(scoreManager.StageScore, scoreManager.StageMaxScore, stars);
@@ -549,50 +569,40 @@ namespace CoffeeKing.Core
             StartStage(stageManager.RetryCurrentStage());
         }
 
-        private void ResetDrinkState()
+        private void ResetDrinkVisuals()
         {
-            extractionMechanic.CancelStep();
-            syrupMechanic.CancelStep();
-            steamMilkMechanic.CancelStep();
-            servingMechanic.CancelStep();
-            portafilterMechanic.CancelStep();
-
+            sceneContext.SetMachineVisual(SpriteAssetNames.MachineEmpty, config.MachineSize, config.MachineColor);
             sceneContext.CupRoot.position = sceneContext.CupAnchorPosition;
-            sceneContext.SetCupVisual(SpriteAssetNames.CupEmpty, config.CupSize, config.CupEmptyColor);
+            sceneContext.CupRoot.gameObject.SetActive(false);
+            sceneContext.SetCupVisual(SpriteAssetNames.CupPlasticEmpty, config.CupSize, config.CupEmptyColor);
+            sceneContext.ShotGlassRoot.position = sceneContext.ShotGlassPosition;
+            sceneContext.ShotGlassRoot.gameObject.SetActive(false);
+            sceneContext.SetShotGlassVisual(SpriteAssetNames.ShotGlassEmpty, config.ShotGlassSize, config.CupEspressoColor);
         }
 
         private void CancelCurrentOrder()
         {
+            grindingMechanic.CancelStep();
+            tampingMechanic.CancelStep();
             extractionMechanic.CancelStep();
-            syrupMechanic.CancelStep();
-            steamMilkMechanic.CancelStep();
+            pourMechanic.CancelStep();
+            ingredientMechanic.CancelStep();
             servingMechanic.CancelStep();
             portafilterMechanic.CancelStep();
+
+            if (cupSetupCoroutine != null)
+            {
+                StopCoroutine(cupSetupCoroutine);
+                cupSetupCoroutine = null;
+            }
 
             if (currentCustomer != null)
             {
                 customerSpawner.ReleaseClaim(currentCustomer);
             }
 
-            sceneContext.CupRoot.position = sceneContext.CupAnchorPosition;
-            sceneContext.SetCupVisual(SpriteAssetNames.CupEmpty, config.CupSize, config.CupEmptyColor);
+            ResetDrinkVisuals();
             sceneContext.SetActiveOrder("No active order");
-        }
-
-        private void SetCupStateAfterExtraction()
-        {
-            sceneContext.SetCupVisual(SpriteAssetNames.CupAmericano, config.CupSize, currentRecipe.BaseCupColor);
-        }
-
-        private void SetCupStateForFinalDrink()
-        {
-            var assetName = currentRecipe.HasStep(RecipeStep.Syrup)
-                ? SpriteAssetNames.CupVanilla
-                : currentRecipe.HasStep(RecipeStep.SteamMilk)
-                    ? SpriteAssetNames.CupLatte
-                    : SpriteAssetNames.CupAmericano;
-
-            sceneContext.SetCupVisual(assetName, config.CupSize, currentRecipe.FinalCupColor);
         }
 
         private void RefreshHud()
@@ -620,46 +630,19 @@ namespace CoffeeKing.Core
             sceneContext.SetRound($"{stageManager.CurrentStage.DisplayName}   {stageManager.FlowState}");
         }
 
-        private bool ShouldShowStageOneTutorial()
+        private static MechanicScoreResult EvaluateLockResult(float durationSeconds)
         {
-            return stageManager.CurrentStage != null &&
-                   stageManager.CurrentStage.Number == 1 &&
-                   !(dragHintShown && rotateHintShown && gaugeHintShown);
-        }
-
-        private void ShowTutorialHint(string title, string body, Vector2 panelOffset, Vector2 arrowOffset, float durationSeconds)
-        {
-            if (tutorialHideCoroutine != null)
+            if (durationSeconds <= 2f)
             {
-                StopCoroutine(tutorialHideCoroutine);
+                return new MechanicScoreResult("Lock", QualityGrade.Perfect, ScoreRules.PortafilterLockPerfectScore, durationSeconds);
             }
 
-            uiContext.TutorialOverlay.Show(title, body, panelOffset, arrowOffset);
-            tutorialHideCoroutine = StartCoroutine(HideTutorialAfterDelay(durationSeconds));
-        }
-
-        private IEnumerator HideTutorialAfterDelay(float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            tutorialHideCoroutine = null;
-            uiContext.TutorialOverlay.Hide();
-        }
-
-        private void CancelTutorial()
-        {
-            if (tutorialHideCoroutine != null)
+            if (durationSeconds <= 4f)
             {
-                StopCoroutine(tutorialHideCoroutine);
-                tutorialHideCoroutine = null;
+                return new MechanicScoreResult("Lock", QualityGrade.Good, ScoreRules.PortafilterLockGoodScore, durationSeconds);
             }
 
-            if (rotateHintCoroutine != null)
-            {
-                StopCoroutine(rotateHintCoroutine);
-                rotateHintCoroutine = null;
-            }
-
-            uiContext?.TutorialOverlay.Hide();
+            return new MechanicScoreResult("Lock", QualityGrade.Bad, ScoreRules.PortafilterLockBadScore, durationSeconds);
         }
 
         private static string FormatGrade(QualityGrade grade)

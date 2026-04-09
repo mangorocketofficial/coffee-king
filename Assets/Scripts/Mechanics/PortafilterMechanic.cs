@@ -51,6 +51,7 @@ namespace CoffeeKing.Mechanics
         {
             interactionEnabled = true;
             SetVisible(true);
+            SetSprite(CoffeeKing.Util.SpriteAssetNames.PortafilterTamped, config.PortafilterIdleColor);
             ResetMechanic();
         }
 
@@ -75,6 +76,17 @@ namespace CoffeeKing.Mechanics
             {
                 portafilterRoot.gameObject.SetActive(isVisible);
             }
+        }
+
+        public void SetSprite(string assetName, Color tint)
+        {
+            if (bodyRenderer == null)
+            {
+                return;
+            }
+
+            bodyRenderer.sprite = CoffeeKing.Util.SpriteFactory.Load(assetName, config.PortafilterBodySize, tint);
+            bodyRenderer.color = tint;
         }
 
         private void OnDestroy()
@@ -301,6 +313,8 @@ namespace CoffeeKing.Mechanics
             {
                 sceneContext.MachineSlotRenderer.color = config.MachineSlotLockedColor;
             }
+
+            sceneContext?.SetMachineVisual(CoffeeKing.Util.SpriteAssetNames.MachineLocked, config.MachineSize, config.MachineColor);
 
             sceneContext.SetStatus("Locked. The grouphead is engaged.");
             Locked?.Invoke();

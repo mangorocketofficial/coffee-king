@@ -28,7 +28,7 @@ namespace CoffeeKing.UI
             var backdrop = UIBuilder.CreateImage("Backdrop", root, new Color(0.14f, 0.09f, 0.06f, 0.85f));
             UIBuilder.Stretch(backdrop.rectTransform);
 
-            var title = UIBuilder.CreateText("Title", root, "Coffee Meister", 88, new Color(0.97f, 0.93f, 0.86f), TextAnchor.MiddleCenter);
+            var title = UIBuilder.CreateText("Title", root, "Coffee King", 88, new Color(0.97f, 0.93f, 0.86f), TextAnchor.MiddleCenter);
             title.fontStyle = FontStyle.Bold;
             SetRect(title.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-480f, 120f), new Vector2(480f, 260f));
 

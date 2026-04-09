@@ -4,14 +4,16 @@
 
 작업 시작 시 아래 문서를 순서대로 읽는다.
 
-1. `C:\Users\User\Desktop\Games\coffee-king\development.md`
+1. `C:\Users\User\Desktop\Games\coffee-king\update_plan.md`
 2. 프로젝트 내 최신 개발 계약 완료 검증 문서
 
-최신 개발 계약 완료 검증 문서가 아직 없다면, 그 사실을 먼저 확인하고 `development.md`를 기준 문서로 삼아 작업을 진행한다.
+최신 개발 계약 완료 검증 문서가 아직 없다면, 그 사실을 먼저 확인하고 `update_plan.md`를 기준 문서로 삼아 작업을 진행한다.
 
 현재 확인 상태:
 
-- 2026-04-09 기준 프로젝트 루트에는 `development.md`만 존재하며, 별도의 개발 계약 완료 검증 문서는 아직 없다.
+- 기준 계획 문서는 `update_plan.md`이다.
+- 최신 개발 계약 완료 검증 문서가 존재하면 `docs/phases/` 아래의 최고 phase `*-verification.md` 문서를 읽는다.
+- 검증 문서가 아직 없다면 `update_plan.md`만 기준으로 작업을 진행한다.
 
 ## Development Rule
 
