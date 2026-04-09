@@ -1,0 +1,44 @@
+using UnityEngine;
+
+namespace CoffeeKing.Orders
+{
+    public enum RecipeStep
+    {
+        Portafilter,
+        Extraction,
+        Syrup,
+        SteamMilk,
+        Serve
+    }
+
+    public sealed class DrinkRecipe
+    {
+        public DrinkRecipe(string id, string displayName, Color baseCupColor, Color finalCupColor, params RecipeStep[] steps)
+        {
+            Id = id;
+            DisplayName = displayName;
+            BaseCupColor = baseCupColor;
+            FinalCupColor = finalCupColor;
+            Steps = steps;
+        }
+
+        public string Id { get; }
+        public string DisplayName { get; }
+        public Color BaseCupColor { get; }
+        public Color FinalCupColor { get; }
+        public RecipeStep[] Steps { get; }
+
+        public bool HasStep(RecipeStep step)
+        {
+            for (var index = 0; index < Steps.Length; index++)
+            {
+                if (Steps[index] == step)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+}
