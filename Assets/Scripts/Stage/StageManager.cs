@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CoffeeKing.Orders;
 
 namespace CoffeeKing.StageFlow
 {
@@ -10,21 +11,33 @@ namespace CoffeeKing.StageFlow
         ResultScreen
     }
 
+    public enum StageEndReason
+    {
+        ClearedOrders,
+        TimeExpired
+    }
+
     public readonly struct StageResult
     {
-        public StageResult(StageData stage, int score, int maxScore, int stars)
+        public StageResult(StageData stage, int score, int maxScore, int stars, StageEndReason endReason, int dailyEarnings, long totalEarnings)
         {
             Stage = stage;
             Score = score;
             MaxScore = maxScore;
             Stars = stars;
+            EndReason = endReason;
+            DailyEarnings = dailyEarnings;
+            TotalEarnings = totalEarnings;
         }
 
         public StageData Stage { get; }
         public int Score { get; }
         public int MaxScore { get; }
         public int Stars { get; }
-        public bool Passed => Stars > 0;
+        public StageEndReason EndReason { get; }
+        public int DailyEarnings { get; }
+        public long TotalEarnings { get; }
+        public bool Passed => true; // Days always pass - no fail state
         public float Percentage
         {
             get
@@ -42,40 +55,44 @@ namespace CoffeeKing.StageFlow
 
     public sealed class StageManager
     {
-        private readonly IReadOnlyList<StageData> stages;
+        private readonly IReadOnlyList<DrinkRecipe> recipes;
 
-        public StageManager(IReadOnlyList<StageData> stages)
+        public StageManager(IReadOnlyList<DrinkRecipe> recipes)
         {
-            this.stages = stages;
-            CurrentStageIndex = -1;
+            this.recipes = recipes;
+            CurrentDayNumber = 0;
         }
 
-        public int CurrentStageIndex { get; private set; }
-        public StageData CurrentStage => CurrentStageIndex >= 0 && CurrentStageIndex < stages.Count ? stages[CurrentStageIndex] : null;
+        public int CurrentDayNumber { get; private set; }
+        public StageData CurrentStage { get; private set; }
         public StageFlowState FlowState { get; private set; }
         public float TimeRemaining { get; private set; }
-        public bool HasNextStage => CurrentStageIndex >= 0 && CurrentStageIndex < stages.Count - 1;
-        public bool IsFinalStage => CurrentStageIndex == stages.Count - 1;
 
-        public StageData StartFirstStage()
+        public StageData StartDay(int dayNumber)
         {
-            return StartStage(0);
+            CurrentDayNumber = dayNumber;
+            CurrentStage = StageLibrary.CreateDay(dayNumber, recipes);
+            FlowState = StageFlowState.StageIntro;
+            TimeRemaining = CurrentStage.TimeLimitSeconds;
+            return CurrentStage;
         }
 
-        public StageData RetryCurrentStage()
+        public StageData StartNextDay()
         {
-            return StartStage(CurrentStageIndex);
+            return StartDay(CurrentDayNumber + 1);
         }
 
-        public StageData AdvanceToNextStage()
+        public StageData RetryCurrentDay()
         {
-            return StartStage(CurrentStageIndex + 1);
+            return StartDay(CurrentDayNumber);
         }
 
         public void MarkPlaying()
         {
             FlowState = StageFlowState.Playing;
         }
+
+        public bool HasTimeExpired => FlowState == StageFlowState.Playing && TimeRemaining <= 0f;
 
         public void Tick(float deltaTime)
         {
@@ -96,18 +113,10 @@ namespace CoffeeKing.StageFlow
             FlowState = StageFlowState.StageComplete;
         }
 
-        public StageResult BuildResult(int score, int maxScore, int stars)
+        public StageResult BuildResult(int score, int maxScore, int stars, StageEndReason endReason, int dailyEarnings, long totalEarnings)
         {
             FlowState = StageFlowState.ResultScreen;
-            return new StageResult(CurrentStage, score, maxScore, stars);
-        }
-
-        private StageData StartStage(int stageIndex)
-        {
-            CurrentStageIndex = stageIndex;
-            FlowState = StageFlowState.StageIntro;
-            TimeRemaining = CurrentStage == null ? 0f : CurrentStage.TimeLimitSeconds;
-            return CurrentStage;
+            return new StageResult(CurrentStage, score, maxScore, stars, endReason, dailyEarnings, totalEarnings);
         }
     }
 }

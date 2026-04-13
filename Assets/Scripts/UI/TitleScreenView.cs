@@ -9,17 +9,21 @@ namespace CoffeeKing.UI
     {
         private readonly RectTransform root;
         private readonly Button startButton;
+        private readonly Button settingsButton;
         private readonly Text subtitleText;
 
-        private TitleScreenView(RectTransform root, Button startButton, Text subtitleText)
+        private TitleScreenView(RectTransform root, Button startButton, Button settingsButton, Text subtitleText)
         {
             this.root = root;
             this.startButton = startButton;
+            this.settingsButton = settingsButton;
             this.subtitleText = subtitleText;
             this.startButton.onClick.AddListener(HandleStartClicked);
+            this.settingsButton.onClick.AddListener(HandleSettingsClicked);
         }
 
         public event Action StartRequested;
+        public event Action SettingsRequested;
 
         public static TitleScreenView Create(Transform parent)
         {
@@ -38,8 +42,11 @@ namespace CoffeeKing.UI
             var startButton = UIBuilder.CreateButton("StartButton", root, "Start", new Color(0.30f, 0.67f, 0.45f), Color.white);
             SetRect(startButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-140f, -110f), new Vector2(140f, -20f));
 
+            var settingsButton = UIBuilder.CreateButton("SettingsButton", root, "Settings", new Color(0.52f, 0.38f, 0.30f), Color.white);
+            SetRect(settingsButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-140f, -200f), new Vector2(140f, -130f));
+
             root.gameObject.SetActive(false);
-            return new TitleScreenView(root, startButton, subtitle);
+            return new TitleScreenView(root, startButton, settingsButton, subtitle);
         }
 
         public void Show(string subtitle)
@@ -56,6 +63,11 @@ namespace CoffeeKing.UI
         private void HandleStartClicked()
         {
             StartRequested?.Invoke();
+        }
+
+        private void HandleSettingsClicked()
+        {
+            SettingsRequested?.Invoke();
         }
 
         private static void SetRect(RectTransform rectTransform, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)

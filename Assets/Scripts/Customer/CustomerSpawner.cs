@@ -4,6 +4,7 @@ using System.Linq;
 using CoffeeKing.Core;
 using CoffeeKing.Orders;
 using CoffeeKing.StageFlow;
+using CoffeeKing.Util;
 using CoffeeKing.View;
 using UnityEngine;
 
@@ -11,11 +12,19 @@ namespace CoffeeKing.CustomerLogic
 {
     public sealed class CustomerSpawner
     {
+        private static readonly string[] AppearanceAssets =
+        {
+            SpriteAssetNames.Customer01,
+            SpriteAssetNames.Customer02,
+            SpriteAssetNames.Customer03,
+            SpriteAssetNames.Customer04,
+            SpriteAssetNames.Customer05
+        };
+
         private static readonly Vector3[] LanePositions =
         {
-            new Vector3(-5.2f, 0.9f, 0f),
-            new Vector3(0f, 0.9f, 0f),
-            new Vector3(5.2f, 0.9f, 0f)
+            new Vector3(-6.0f, 3.0f, 0f),
+            new Vector3(6.0f, 3.0f, 0f)
         };
 
         private readonly List<Customer> plannedCustomers = new List<Customer>();
@@ -56,12 +65,34 @@ namespace CoffeeKing.CustomerLogic
             DestroyViews();
 
             var random = new System.Random(seed);
-            for (var index = 0; index < stage.CustomerCount; index++)
+            if (stage.AllowedRecipes.Count == stage.CustomerCount)
             {
-                var recipe = stage.AllowedRecipes[random.Next(stage.AllowedRecipes.Count)];
-                var customer = new Customer(index + 1, recipe, GetPatienceForRecipe(stage, recipe));
-                plannedCustomers.Add(customer);
-                views[customer] = CustomerView.Create(customerLayer, config);
+                var exactPool = stage.AllowedRecipes.ToList();
+                for (var index = exactPool.Count - 1; index > 0; index--)
+                {
+                    var swapIndex = random.Next(index + 1);
+                    var temp = exactPool[index];
+                    exactPool[index] = exactPool[swapIndex];
+                    exactPool[swapIndex] = temp;
+                }
+
+                for (var index = 0; index < exactPool.Count; index++)
+                {
+                    var recipe = exactPool[index];
+                    var customer = new Customer(index + 1, recipe, GetPatienceForRecipe(stage, recipe), GetRandomAppearance(random));
+                    plannedCustomers.Add(customer);
+                    views[customer] = CustomerView.Create(customerLayer, config);
+                }
+            }
+            else
+            {
+                for (var index = 0; index < stage.CustomerCount; index++)
+                {
+                    var recipe = stage.AllowedRecipes[random.Next(stage.AllowedRecipes.Count)];
+                    var customer = new Customer(index + 1, recipe, GetPatienceForRecipe(stage, recipe), GetRandomAppearance(random));
+                    plannedCustomers.Add(customer);
+                    views[customer] = CustomerView.Create(customerLayer, config);
+                }
             }
         }
 
@@ -86,10 +117,10 @@ namespace CoffeeKing.CustomerLogic
             if (nextSpawnIndex < plannedCustomers.Count)
             {
                 spawnTimer -= deltaTime;
-                while (spawnTimer <= 0f && activeCustomers.Count < stageData.MaxSimultaneousCustomers && nextSpawnIndex < plannedCustomers.Count)
+                if (spawnTimer <= 0f && activeCustomers.Count < stageData.MaxSimultaneousCustomers)
                 {
                     SpawnNextCustomer();
-                    spawnTimer += Mathf.Max(0.5f, stageData.SpawnIntervalSeconds);
+                    spawnTimer = Mathf.Max(0.5f, stageData.SpawnIntervalSeconds);
                 }
             }
 
@@ -153,6 +184,22 @@ namespace CoffeeKing.CustomerLogic
             }
         }
 
+        public void MarkRejected(Customer customer)
+        {
+            if (customer == null)
+            {
+                return;
+            }
+
+            if (activeCustomers.Remove(customer))
+            {
+                customer.MarkServed();
+                ServedCount++;
+                views[customer].MarkRejected();
+                UpdateHighlights(null);
+            }
+        }
+
         public bool IsFinished => nextSpawnIndex >= plannedCustomers.Count && activeCustomers.Count == 0;
 
         public string GetQueueSummary()
@@ -171,6 +218,38 @@ namespace CoffeeKing.CustomerLogic
                 });
 
             return string.Join("\n", lines);
+        }
+
+        public IReadOnlyList<Customer> ResolveRemainingCustomersAsTimedOut()
+        {
+            var unresolvedCustomers = new List<Customer>();
+
+            isRunning = false;
+            spawnTimer = 0f;
+            nextSpawnIndex = plannedCustomers.Count;
+
+            for (var index = 0; index < plannedCustomers.Count; index++)
+            {
+                var customer = plannedCustomers[index];
+                if (customer.IsResolved)
+                {
+                    continue;
+                }
+
+                var wasVisibleCustomer = customer.State != CustomerState.Queued;
+                customer.MarkTimedOut();
+                activeCustomers.Remove(customer);
+                TimedOutCount++;
+                unresolvedCustomers.Add(customer);
+
+                if (wasVisibleCustomer)
+                {
+                    views[customer].MarkTimedOut();
+                }
+            }
+
+            UpdateHighlights(null);
+            return unresolvedCustomers;
         }
 
         public void DestroyViews()
@@ -231,6 +310,11 @@ namespace CoffeeKing.CustomerLogic
             }
 
             return patience;
+        }
+
+        private static string GetRandomAppearance(System.Random random)
+        {
+            return AppearanceAssets[random.Next(AppearanceAssets.Length)];
         }
     }
 }

@@ -6,13 +6,20 @@ namespace CoffeeKing.CustomerLogic
 {
     public sealed class CustomerView
     {
+        private static readonly Vector3 BubbleLocalPosition = new Vector3(0f, 1.1f, 0f);
+        private const float BubbleHeight = 0.5f;
+        private const float BubbleMinWidth = 1.4f;
+        private const float BubbleMaxWidth = 2.8f;
+        private const float BubblePadding = 0.7f;
+        private const float BubbleHideDelay = 2.6f;
+
         private readonly Transform root;
         private readonly SpriteRenderer bodyRenderer;
         private readonly SpriteRenderer bubbleRenderer;
         private readonly Transform patienceFill;
         private readonly SpriteRenderer patienceFillRenderer;
         private readonly TextMesh orderText;
-        private readonly TextMesh labelText;
+        private readonly Vector2 bodySize;
         private readonly Color baseColor;
         private readonly Color speechBubbleColor;
 
@@ -20,6 +27,7 @@ namespace CoffeeKing.CustomerLogic
         private Vector3 spawnPosition;
         private Vector3 exitPosition;
         private bool exiting;
+        private float orderBubbleTimer;
 
         private CustomerView(
             Transform root,
@@ -28,7 +36,7 @@ namespace CoffeeKing.CustomerLogic
             Transform patienceFill,
             SpriteRenderer patienceFillRenderer,
             TextMesh orderText,
-            TextMesh labelText,
+            Vector2 bodySize,
             Color baseColor,
             Color speechBubbleColor)
         {
@@ -38,7 +46,7 @@ namespace CoffeeKing.CustomerLogic
             this.patienceFill = patienceFill;
             this.patienceFillRenderer = patienceFillRenderer;
             this.orderText = orderText;
-            this.labelText = labelText;
+            this.bodySize = bodySize;
             this.baseColor = baseColor;
             this.speechBubbleColor = speechBubbleColor;
         }
@@ -48,15 +56,16 @@ namespace CoffeeKing.CustomerLogic
             var rootObject = new GameObject("CustomerView");
             rootObject.transform.SetParent(parent, false);
 
-            var body = CreateRect("Body", SpriteAssetNames.Customer, rootObject.transform, Vector3.zero, config.CustomerSize, config.CustomerColor, 11);
-            var bubble = CreateRect("Bubble", SpriteAssetNames.SpeechBubble, rootObject.transform, new Vector3(0f, 1.55f, 0f), config.SpeechBubbleSize, config.SpeechBubbleColor, 12);
-            var patienceFrame = CreateRect("PatienceFrame", rootObject.transform, new Vector3(-0.8f, -1.38f, 0f), new Vector2(1.6f, 0.16f), config.GaugeFrameColor, 12, new Vector2(0f, 0.5f));
-            var patienceBack = CreateRect("PatienceBack", rootObject.transform, new Vector3(-0.76f, -1.38f, 0f), new Vector2(1.52f, 0.10f), config.GaugeBackgroundColor, 13, new Vector2(0f, 0.5f));
-            var patienceFill = CreateRect("PatienceFill", rootObject.transform, new Vector3(-0.76f, -1.38f, 0f), new Vector2(1.52f, 0.10f), ColorPalette.HighlightGood, 14, new Vector2(0f, 0.5f));
+            var body = CreateRect("Body", SpriteAssetNames.Customer, rootObject.transform, Vector3.zero, config.CustomerSize, config.CustomerColor, 40);
+            var bubble = CreateRect("Bubble", rootObject.transform, BubbleLocalPosition, config.SpeechBubbleSize, config.SpeechBubbleColor, 41, new Vector2(0.5f, 0.5f));
+            var halfH = config.CustomerSize.y * 0.5f;
+            var barY = halfH + 0.08f;
+            var patienceFrame = CreateRect("PatienceFrame", rootObject.transform, new Vector3(-0.5f, barY, 0f), new Vector2(1.0f, 0.1f), config.GaugeFrameColor, 42, new Vector2(0f, 0.5f));
+            var patienceBack = CreateRect("PatienceBack", rootObject.transform, new Vector3(-0.47f, barY, 0f), new Vector2(0.94f, 0.06f), config.GaugeBackgroundColor, 43, new Vector2(0f, 0.5f));
+            var patienceFill = CreateRect("PatienceFill", rootObject.transform, new Vector3(-0.47f, barY, 0f), new Vector2(0.94f, 0.06f), ColorPalette.HighlightGood, 44, new Vector2(0f, 0.5f));
             patienceFill.transform.localScale = Vector3.one;
 
-            var order = CreateText("OrderText", rootObject.transform, new Vector3(0f, 1.58f, 0f), string.Empty, config.InstructionTextColor, 0.07f, 15);
-            var label = CreateText("LabelText", rootObject.transform, new Vector3(0f, -1.68f, 0f), string.Empty, config.SecondaryTextColor, 0.065f, 15);
+            var order = CreateText("OrderText", rootObject.transform, BubbleLocalPosition, string.Empty, config.InstructionTextColor, 0.055f, 45);
 
             rootObject.SetActive(false);
 
@@ -67,7 +76,7 @@ namespace CoffeeKing.CustomerLogic
                 patienceFill.transform,
                 patienceFill,
                 order,
-                label,
+                config.CustomerSize,
                 config.CustomerColor,
                 config.SpeechBubbleColor);
         }
@@ -75,15 +84,15 @@ namespace CoffeeKing.CustomerLogic
         public void Bind(Customer customer, Vector3 targetLanePosition)
         {
             lanePosition = targetLanePosition;
-            spawnPosition = targetLanePosition + new Vector3(0f, 2.5f, 0f);
-            exitPosition = targetLanePosition + new Vector3(0f, 2.9f, 0f);
+            spawnPosition = targetLanePosition + new Vector3(0f, 1.2f, 0f);
+            exitPosition = targetLanePosition + new Vector3(0f, 1.5f, 0f);
             root.gameObject.SetActive(true);
             root.position = spawnPosition;
             exiting = false;
 
-            orderText.text = customer.Order.DisplayName;
-            labelText.text = $"Customer {customer.SequenceNumber}";
-            bodyRenderer.color = baseColor;
+            bodyRenderer.sprite = SpriteFactory.Load(customer.AppearanceAssetName, bodySize, baseColor);
+            bodyRenderer.color = Color.white;
+            ShowOrderBubble(customer.Order.DisplayName);
             bubbleRenderer.color = speechBubbleColor;
             SetPatience(customer.PatienceNormalized);
         }
@@ -98,6 +107,15 @@ namespace CoffeeKing.CustomerLogic
             var target = exiting ? exitPosition : lanePosition;
             root.position = Vector3.MoveTowards(root.position, target, deltaTime * 6f);
 
+            if (orderBubbleTimer > 0f)
+            {
+                orderBubbleTimer = Mathf.Max(0f, orderBubbleTimer - deltaTime);
+                if (orderBubbleTimer <= 0f)
+                {
+                    SetOrderBubbleVisible(false);
+                }
+            }
+
             if (exiting && Vector3.Distance(root.position, target) < 0.01f)
             {
                 root.gameObject.SetActive(false);
@@ -109,26 +127,48 @@ namespace CoffeeKing.CustomerLogic
             var clamped = Mathf.Clamp01(normalized);
             patienceFill.localScale = new Vector3(clamped, 1f, 1f);
             patienceFillRenderer.color = Color.Lerp(ColorPalette.HighlightBad, ColorPalette.HighlightGood, clamped);
+
+            // Expression tint based on patience level
+            if (!exiting)
+            {
+                if (clamped < 0.2f)
+                {
+                    bodyRenderer.color = new Color(1f, 0.75f, 0.70f); // critical red tint
+                }
+                else if (clamped < 0.5f)
+                {
+                    bodyRenderer.color = new Color(1f, 0.90f, 0.75f); // impatient orange tint
+                }
+                else
+                {
+                    bodyRenderer.color = Color.white; // neutral
+                }
+            }
         }
 
         public void SetFocused(bool isFocused)
         {
-            bodyRenderer.color = isFocused ? ColorPalette.ServingAreaActive : baseColor;
+            bodyRenderer.color = isFocused ? new Color(0.84f, 0.96f, 0.88f) : Color.white;
         }
 
         public void MarkServed()
         {
-            bodyRenderer.color = ColorPalette.HighlightGood;
-            bubbleRenderer.color = new Color(0.89f, 0.97f, 0.90f);
-            orderText.text = "Served";
+            bodyRenderer.color = new Color(0.80f, 1f, 0.85f); // happy green tint on serve
+            SetOrderBubbleVisible(false);
+            exiting = true;
+        }
+
+        public void MarkRejected()
+        {
+            bodyRenderer.color = new Color(1f, 0.55f, 0.55f);
+            SetOrderBubbleVisible(false);
             exiting = true;
         }
 
         public void MarkTimedOut()
         {
-            bodyRenderer.color = ColorPalette.HighlightBad;
-            bubbleRenderer.color = new Color(0.98f, 0.89f, 0.87f);
-            orderText.text = "Timed Out";
+            bodyRenderer.color = new Color(1f, 0.82f, 0.82f);
+            SetOrderBubbleVisible(false);
             SetPatience(0f);
             exiting = true;
         }
@@ -182,9 +222,42 @@ namespace CoffeeKing.CustomerLogic
             renderer.sprite = assetName == null
                 ? SpriteFactory.CreateRect(name, size, color, pivot)
                 : SpriteFactory.Load(assetName, size, color, pivot);
-            renderer.color = color;
+            renderer.color = assetName == null ? color : Color.white;
             renderer.sortingOrder = sortingOrder;
             return renderer;
+        }
+
+        private void ShowOrderBubble(string text)
+        {
+            orderText.text = text;
+
+            var estimatedWidth = Mathf.Clamp((text.Length * 0.18f) + BubblePadding, BubbleMinWidth, BubbleMaxWidth);
+            var bubbleSize = new Vector2(estimatedWidth, BubbleHeight);
+
+            bubbleRenderer.sprite = SpriteFactory.CreateEllipse("customer_order_bubble", bubbleSize, speechBubbleColor);
+            bubbleRenderer.color = speechBubbleColor;
+            bubbleRenderer.transform.localPosition = BubbleLocalPosition;
+            orderText.transform.localPosition = BubbleLocalPosition + new Vector3(0f, 0.01f, 0f);
+
+            SetOrderBubbleVisible(true);
+            orderBubbleTimer = BubbleHideDelay;
+        }
+
+        private void SetOrderBubbleVisible(bool isVisible)
+        {
+            if (bubbleRenderer != null)
+            {
+                bubbleRenderer.enabled = isVisible;
+            }
+
+            if (orderText != null)
+            {
+                var renderer = orderText.GetComponent<MeshRenderer>();
+                if (renderer != null)
+                {
+                    renderer.enabled = isVisible;
+                }
+            }
         }
 
         private static TextMesh CreateText(

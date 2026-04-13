@@ -31,6 +31,6 @@ namespace CoffeeKing.StageFlow
         public float TimeLimitSeconds { get; }
         public IReadOnlyList<DrinkRecipe> AllowedRecipes { get; }
 
-        public string DisplayName => $"Stage {Number}";
+        public string DisplayName => $"Day {Number}";
     }
 }

@@ -22,6 +22,8 @@ namespace CoffeeKing.Mechanics
 
         private Transform portafilterRoot;
         private SpriteRenderer bodyRenderer;
+        private Transform handleRoot;
+        private SpriteRenderer handleRenderer;
         private PortafilterState state;
         private bool interactionEnabled;
         private int activePointerId = int.MinValue;
@@ -64,6 +66,11 @@ namespace CoffeeKing.Mechanics
                 portafilterRoot.gameObject.SetActive(false);
             }
 
+            if (handleRoot != null)
+            {
+                handleRoot.gameObject.SetActive(false);
+            }
+
             if (sceneContext?.MachineSlotRenderer != null)
             {
                 sceneContext.MachineSlotRenderer.color = config.MachineSlotIdleColor;
@@ -86,7 +93,7 @@ namespace CoffeeKing.Mechanics
             }
 
             bodyRenderer.sprite = CoffeeKing.Util.SpriteFactory.Load(assetName, config.PortafilterBodySize, tint);
-            bodyRenderer.color = tint;
+            bodyRenderer.color = Color.white;
         }
 
         private void OnDestroy()
@@ -188,6 +195,15 @@ namespace CoffeeKing.Mechanics
                 config.PortafilterBodySize,
                 config.PortafilterIdleColor);
             bodyRenderer.sortingOrder = 10;
+
+            var handleObject = new GameObject("LockHandle");
+            handleRoot = handleObject.transform;
+            handleRoot.SetParent(sceneContext.InteractiveRoot, false);
+            handleRenderer = handleObject.AddComponent<SpriteRenderer>();
+            var handleSize = new Vector2(1.6f, 0.35f);
+            handleRenderer.sprite = CoffeeKing.Util.SpriteFactory.CreateRect("lock_handle", handleSize, config.PortafilterSnapColor);
+            handleRenderer.sortingOrder = 15;
+            handleObject.SetActive(false);
         }
 
         private void ResetMechanic()
@@ -201,12 +217,19 @@ namespace CoffeeKing.Mechanics
             {
                 portafilterRoot.position = config.PortafilterSpawnPosition;
                 portafilterRoot.rotation = Quaternion.identity;
+                portafilterRoot.gameObject.SetActive(true);
             }
 
             if (bodyRenderer != null)
             {
                 bodyRenderer.color = config.PortafilterIdleColor;
                 bodyRenderer.sortingOrder = 10;
+            }
+
+            if (handleRoot != null)
+            {
+                handleRoot.gameObject.SetActive(false);
+                handleRoot.rotation = Quaternion.identity;
             }
 
             if (sceneContext?.MachineSlotRenderer != null)
@@ -220,15 +243,17 @@ namespace CoffeeKing.Mechanics
         private void EnterSnapState(Vector2 pointerWorldPosition)
         {
             state = PortafilterState.Snapping;
-            portafilterRoot.position = sceneContext.MachineSlotPosition;
             currentRotationAngle = 0f;
             lastPointerAngle = GetPointerAngle(pointerWorldPosition);
             rotationUnlockTime = Time.unscaledTime + 0.12f;
 
-            if (bodyRenderer != null)
+            portafilterRoot.gameObject.SetActive(false);
+
+            if (handleRoot != null)
             {
-                bodyRenderer.color = config.PortafilterSnapColor;
-                bodyRenderer.sortingOrder = 12;
+                handleRoot.position = sceneContext.MachineSlotPosition;
+                handleRoot.rotation = Quaternion.identity;
+                handleRoot.gameObject.SetActive(true);
             }
 
             if (sceneContext.MachineSlotRenderer != null)
@@ -286,9 +311,9 @@ namespace CoffeeKing.Mechanics
 
         private void ApplyRotation(float degrees)
         {
-            if (portafilterRoot != null)
+            if (handleRoot != null)
             {
-                portafilterRoot.rotation = Quaternion.Euler(0f, 0f, degrees);
+                handleRoot.rotation = Quaternion.Euler(0f, 0f, degrees);
             }
         }
 
@@ -304,9 +329,9 @@ namespace CoffeeKing.Mechanics
             interactionEnabled = false;
             activePointerId = int.MinValue;
 
-            if (bodyRenderer != null)
+            if (handleRoot != null)
             {
-                bodyRenderer.color = config.PortafilterLockedColor;
+                handleRoot.gameObject.SetActive(false);
             }
 
             if (sceneContext.MachineSlotRenderer != null)

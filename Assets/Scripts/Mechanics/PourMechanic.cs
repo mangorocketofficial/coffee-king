@@ -14,6 +14,7 @@ namespace CoffeeKing.Mechanics
         private bool active;
         private int activePointerId = int.MinValue;
         private Vector3 dragOffset;
+        private Vector3 restPosition;
 
         public event Action Completed;
 
@@ -29,8 +30,15 @@ namespace CoffeeKing.Mechanics
 
         public void BeginStep()
         {
+            BeginStep(sceneContext.ShotGlassPosition);
+        }
+
+        public void BeginStep(Vector3 spawnPosition)
+        {
             active = true;
-            sceneContext.ShotGlassRoot.position = sceneContext.ShotGlassPosition;
+            activePointerId = int.MinValue;
+            restPosition = spawnPosition;
+            sceneContext.ShotGlassRoot.position = restPosition;
             sceneContext.ShotGlassRoot.gameObject.SetActive(true);
         }
 
@@ -38,6 +46,7 @@ namespace CoffeeKing.Mechanics
         {
             active = false;
             activePointerId = int.MinValue;
+            restPosition = sceneContext != null ? sceneContext.ShotGlassPosition : Vector3.zero;
             Hide();
         }
 
@@ -88,7 +97,7 @@ namespace CoffeeKing.Mechanics
             }
             else
             {
-                sceneContext.ShotGlassRoot.position = sceneContext.ShotGlassPosition;
+                sceneContext.ShotGlassRoot.position = restPosition;
             }
         }
 

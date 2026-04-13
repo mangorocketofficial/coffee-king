@@ -7,18 +7,26 @@ namespace CoffeeKing.UI
 {
     public sealed class UIContext
     {
-        public UIContext(Canvas canvas, HUDView hudView, TitleScreenView titleScreenView, TutorialOverlay tutorialOverlay)
+        public UIContext(Canvas canvas, HUDView hudView, TitleScreenView titleScreenView, StageSelectView stageSelectView, TutorialOverlay tutorialOverlay, PauseOverlayView pauseOverlayView, ScreenFader screenFader, SettingsView settingsView)
         {
             Canvas = canvas;
             HUDView = hudView;
             TitleScreenView = titleScreenView;
+            StageSelectView = stageSelectView;
             TutorialOverlay = tutorialOverlay;
+            PauseOverlayView = pauseOverlayView;
+            ScreenFader = screenFader;
+            SettingsView = settingsView;
         }
 
         public Canvas Canvas { get; }
         public HUDView HUDView { get; }
         public TitleScreenView TitleScreenView { get; }
+        public StageSelectView StageSelectView { get; }
         public TutorialOverlay TutorialOverlay { get; }
+        public PauseOverlayView PauseOverlayView { get; }
+        public ScreenFader ScreenFader { get; }
+        public SettingsView SettingsView { get; }
     }
 
     public static class UIBuilder
@@ -43,9 +51,13 @@ namespace CoffeeKing.UI
 
             var hudView = HUDView.Create(canvasObject.transform);
             var titleScreenView = TitleScreenView.Create(canvasObject.transform);
+            var stageSelectView = StageSelectView.Create(canvasObject.transform);
             var tutorialOverlay = TutorialOverlay.Create(canvasObject.transform);
+            var pauseOverlayView = PauseOverlayView.Create(canvasObject.transform);
+            var screenFader = ScreenFader.Create(canvasObject.transform);
+            var settingsView = SettingsView.Create(canvasObject.transform);
 
-            return new UIContext(canvas, hudView, titleScreenView, tutorialOverlay);
+            return new UIContext(canvas, hudView, titleScreenView, stageSelectView, tutorialOverlay, pauseOverlayView, screenFader, settingsView);
         }
 
         public static Font GetFont()

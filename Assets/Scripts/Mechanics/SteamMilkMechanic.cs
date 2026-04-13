@@ -2,6 +2,7 @@ using System;
 using CoffeeKing.Core;
 using CoffeeKing.GameInput;
 using CoffeeKing.Scoring;
+using CoffeeKing.Util;
 using CoffeeKing.View;
 using UnityEngine;
 
@@ -39,8 +40,10 @@ namespace CoffeeKing.Mechanics
             currentTemperature = config.SteamStartTemperature;
 
             sceneContext.PitcherRenderer.gameObject.SetActive(true);
+            sceneContext.PitcherRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.Pitcher, config.PitcherSize, config.PitcherColor);
+            sceneContext.PitcherRenderer.color = Color.white;
             sceneContext.SteamWandRenderer.gameObject.SetActive(true);
-            sceneContext.SteamWandRenderer.color = config.SteamWandColor;
+            sceneContext.SteamWandRenderer.color = Color.white;
             sceneContext.SteamWandRoot.position = sceneContext.SteamWandSpawnPosition;
             sceneContext.GaugeView.SetVisible(true);
             sceneContext.GaugeView.Configure(
@@ -58,6 +61,17 @@ namespace CoffeeKing.Mechanics
             snapped = false;
             activePointerId = int.MinValue;
             currentTemperature = config.SteamStartTemperature;
+            if (sceneContext?.PitcherRenderer != null)
+            {
+                sceneContext.PitcherRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.Pitcher, config.PitcherSize, config.PitcherColor);
+                sceneContext.PitcherRenderer.color = Color.white;
+            }
+
+            if (sceneContext?.SteamWandRenderer != null)
+            {
+                sceneContext.SteamWandRenderer.color = Color.white;
+            }
+
             Hide();
             if (sceneContext?.SteamWandRoot != null)
             {
@@ -119,7 +133,7 @@ namespace CoffeeKing.Mechanics
                 if (Vector2.Distance(sceneContext.SteamWandRoot.position, sceneContext.SteamWandSnapPosition) <= config.SteamWandSnapDistance)
                 {
                     snapped = true;
-                    sceneContext.SteamWandRenderer.color = config.ServingAreaActiveColor;
+                    sceneContext.SteamWandRenderer.color = Color.white;
                     sceneContext.SteamWandRoot.position = new Vector3(
                         sceneContext.SteamWandSnapPosition.x,
                         config.SteamWandMaxY,
@@ -170,6 +184,12 @@ namespace CoffeeKing.Mechanics
             active = false;
             activePointerId = int.MinValue;
             var result = EvaluateResult();
+            if (sceneContext?.PitcherRenderer != null)
+            {
+                sceneContext.PitcherRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.PitcherSteamed, config.PitcherSize, config.PitcherColor);
+                sceneContext.PitcherRenderer.color = Color.white;
+            }
+
             Hide();
             Completed?.Invoke(result);
         }
@@ -178,15 +198,15 @@ namespace CoffeeKing.Mechanics
         {
             if (currentTemperature >= config.SteamPerfectMin && currentTemperature <= config.SteamPerfectMax)
             {
-                return new MechanicScoreResult("Steam", QualityGrade.Perfect, 100, currentTemperature);
+                return new MechanicScoreResult("Steam", QualityGrade.Perfect, ScoreRules.SteamPerfectScore, currentTemperature);
             }
 
             if (currentTemperature >= config.SteamGoodMin && currentTemperature <= config.SteamGoodMax)
             {
-                return new MechanicScoreResult("Steam", QualityGrade.Good, 60, currentTemperature);
+                return new MechanicScoreResult("Steam", QualityGrade.Good, ScoreRules.SteamGoodScore, currentTemperature);
             }
 
-            return new MechanicScoreResult("Steam", QualityGrade.Bad, 20, currentTemperature);
+            return new MechanicScoreResult("Steam", QualityGrade.Bad, ScoreRules.SteamBadScore, currentTemperature);
         }
 
         private float GetDepthNormalized()

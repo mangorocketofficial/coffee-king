@@ -9,6 +9,7 @@ namespace CoffeeKing.Core
         public Vector3 CameraPosition;
 
         public Vector2 WallSize;
+        public Vector2 CounterEdgeSize;
         public Vector2 CounterSize;
         public Vector2 MachineSize;
         public Vector2 MachineSlotSize;
@@ -27,8 +28,12 @@ namespace CoffeeKing.Core
         public Vector2 TamperSize;
         public Vector2 ShotGlassSize;
         public Vector2 WaterBottleSize;
+        public Vector2 HotWaterDispenserSize;
+        public Vector2 IcedLidSize;
+        public Vector2 HotLidSize;
 
         public Vector3 WallPosition;
+        public Vector3 CounterEdgePosition;
         public Vector3 CounterPosition;
         public Vector3 MachinePosition;
         public Vector3 MachineSlotPosition;
@@ -49,6 +54,9 @@ namespace CoffeeKing.Core
         public Vector3 TamperPosition;
         public Vector3 ShotGlassPosition;
         public Vector3 WaterBottlePosition;
+        public Vector3 HotWaterDispenserPosition;
+        public Vector3 HotWaterPourPosition;
+        public Vector3 LidPosition;
 
         public float PortafilterSnapDistance;
         public float PortafilterLockAngle;
@@ -137,32 +145,37 @@ namespace CoffeeKing.Core
             CameraOrthographicSize = 5f;
             CameraPosition = new Vector3(0f, 0f, -10f);
 
-            WallSize = new Vector2(18f, 6.2f);
-            CounterSize = new Vector2(18f, 4.1f);
+            WallSize = new Vector2(18f, 10f);
+            CounterEdgeSize = new Vector2(18f, 0.95f);
+            CounterSize = new Vector2(18f, 12f);
             MachineSize = new Vector2(4.4f, 3.1f);
             MachineSlotSize = new Vector2(1.4f, 0.38f);
             IngredientTraySize = new Vector2(2.4f, 4.6f);
             PortafilterBodySize = new Vector2(2.1f, 0.72f);
             CupSize = new Vector2(0.95f, 1.15f);
             ServingAreaSize = new Vector2(2.4f, 1.8f);
-            ExtractionButtonSize = new Vector2(1.2f, 0.6f);
+            ExtractionButtonSize = new Vector2(1.0f, 1.0f);
             GaugeSize = new Vector2(4.8f, 0.5f);
-            SteamWandSize = new Vector2(0.28f, 2.2f);
-            PitcherSize = new Vector2(1.0f, 1.25f);
+            SteamWandSize = new Vector2(0.35f, 1.5f);
+            PitcherSize = new Vector2(0.88f, 1.2f);
             SyrupBottleSize = new Vector2(0.72f, 1.5f);
-            CustomerSize = new Vector2(1.5f, 2.1f);
-            SpeechBubbleSize = new Vector2(2.6f, 1.0f);
+            CustomerSize = new Vector2(1.3f, 1.82f);
+            SpeechBubbleSize = new Vector2(2.0f, 0.8f);
             GrinderSize = new Vector2(1.75f, 2.3f);
             TamperSize = new Vector2(0.9f, 1.15f);
             ShotGlassSize = new Vector2(0.55f, 0.85f);
             WaterBottleSize = new Vector2(0.8f, 1.8f);
+            HotWaterDispenserSize = new Vector2(1.75f, 2.3f);
+            IcedLidSize = new Vector2(1.24f, 0.52f);
+            HotLidSize = new Vector2(1.02f, 0.32f);
 
-            WallPosition = new Vector3(0f, 1.95f, 0f);
-            CounterPosition = new Vector3(0f, -3f, 0f);
+            WallPosition = new Vector3(0f, 0f, 0f);
+            CounterEdgePosition = new Vector3(0f, 1.02f, 0f);
+            CounterPosition = new Vector3(0f, -5f, 0f);
             MachinePosition = new Vector3(0.3f, -0.15f, 0f);
             MachineSlotPosition = new Vector3(0.3f, -0.55f, 0f);
             IngredientTrayPosition = new Vector3(-6.35f, -1.1f, 0f);
-            PortafilterSpawnPosition = new Vector3(-6.45f, -2.05f, 0f);
+            PortafilterSpawnPosition = new Vector3(-1.95f, -2.18f, 0f);
             CupPosition = new Vector3(0.25f, -2.05f, 0f);
             ServingAreaPosition = new Vector3(6.05f, -2.1f, 0f);
             ExtractionButtonPosition = new Vector3(0.25f, -1.95f, 0f);
@@ -171,13 +184,16 @@ namespace CoffeeKing.Core
             SteamWandSnapPosition = new Vector3(2.75f, -0.6f, 0f);
             PitcherPosition = new Vector3(2.8f, -2.05f, 0f);
             SyrupBottlePosition = new Vector3(-5.75f, -2.0f, 0f);
-            CustomerPosition = new Vector3(5.45f, 1.15f, 0f);
-            SpeechBubblePosition = new Vector3(5.4f, 2.75f, 0f);
+            CustomerPosition = new Vector3(6.0f, 3.0f, 0f);
+            SpeechBubblePosition = new Vector3(6.0f, 4.2f, 0f);
             GrinderPosition = new Vector3(-3.25f, -0.9f, 0f);
-            PortafilterWorkbenchPosition = new Vector3(-5.45f, -2.0f, 0f);
-            TamperPosition = new Vector3(-4.15f, -0.85f, 0f);
-            ShotGlassPosition = new Vector3(0.25f, -1.55f, 0f);
+            PortafilterWorkbenchPosition = new Vector3(-1.95f, -2.15f, 0f);
+            TamperPosition = new Vector3(-1.5f, -0.85f, 0f);
+            ShotGlassPosition = new Vector3(0.3f, -1.18f, 0f);
             WaterBottlePosition = new Vector3(-6.15f, -1.95f, 0f);
+            HotWaterDispenserPosition = new Vector3(-6.15f, -1.15f, 0f);
+            HotWaterPourPosition = new Vector3(-5.1f, -1.3f, 0f);
+            LidPosition = new Vector3(-5.0f, -1.95f, 0f);
 
             PortafilterSnapDistance = 1.05f;
             PortafilterLockAngle = 95f;
@@ -189,7 +205,7 @@ namespace CoffeeKing.Core
 
             ExtractionGaugeMin = 0f;
             ExtractionGaugeMax = 100f;
-            ExtractionGaugeSpeed = 100f / 35f;
+            ExtractionGaugeSpeed = 100f / 5f;
             ExtractionPerfectMin = 65f;
             ExtractionPerfectMax = 72f;
             ExtractionGoodMin = 55f;

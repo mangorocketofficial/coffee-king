@@ -4,13 +4,14 @@ namespace CoffeeKing.Flow
     {
         WaitingForOrder,
         MoveToGrinder,
-        Grinding,
         Tamping,
         PortafilterLocking,
         Extracting,
+        SteamMilk,
         CupSetup,
         PourShotToCup,
         PourIngredient,
+        Lid,
         Serving,
         Scoring
     }

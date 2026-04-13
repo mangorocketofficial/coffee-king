@@ -24,7 +24,7 @@ namespace CoffeeKing.UI
             var root = UIBuilder.CreateStretchRoot("TutorialOverlay", parent);
 
             var panel = UIBuilder.CreateImage("HintPanel", root, new Color(0.97f, 0.95f, 0.89f, 0.94f));
-            SetRect(panel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-260f, 250f), new Vector2(260f, 390f));
+            SetRect(panel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-260f, 350f), new Vector2(260f, 490f));
 
             var title = UIBuilder.CreateText("HintTitle", panel.transform, string.Empty, 34, ColorPalette.InstructionText, TextAnchor.UpperCenter);
             UIBuilder.Stretch(title.rectTransform);
@@ -43,11 +43,13 @@ namespace CoffeeKing.UI
             return new TutorialOverlay(root, title, body, arrow);
         }
 
-        public void Show(string title, string body, Vector2 panelOffset, Vector2 arrowOffset)
+        public void Show(string title, string body, Vector2 panelOffset, Vector2 arrowOffset, string arrowSymbol = "->")
         {
             root.gameObject.SetActive(true);
             titleText.text = title;
             bodyText.text = body;
+            arrowText.text = arrowSymbol;
+            arrowText.gameObject.SetActive(!string.IsNullOrEmpty(arrowSymbol));
 
             var panelRect = titleText.transform.parent.GetComponent<RectTransform>();
             panelRect.anchoredPosition = panelOffset;

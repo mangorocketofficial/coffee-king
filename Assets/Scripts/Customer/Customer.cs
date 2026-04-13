@@ -14,11 +14,12 @@ namespace CoffeeKing.CustomerLogic
 
     public sealed class Customer
     {
-        public Customer(int sequenceNumber, DrinkRecipe order, float patienceDuration)
+        public Customer(int sequenceNumber, DrinkRecipe order, float patienceDuration, string appearanceAssetName)
         {
             SequenceNumber = sequenceNumber;
             Order = order;
             PatienceDuration = patienceDuration;
+            AppearanceAssetName = appearanceAssetName;
             PatienceRemaining = patienceDuration;
             State = CustomerState.Queued;
             LaneIndex = -1;
@@ -27,6 +28,7 @@ namespace CoffeeKing.CustomerLogic
         public int SequenceNumber { get; }
         public DrinkRecipe Order { get; }
         public float PatienceDuration { get; }
+        public string AppearanceAssetName { get; }
         public float PatienceRemaining { get; private set; }
         public CustomerState State { get; private set; }
         public int LaneIndex { get; private set; }

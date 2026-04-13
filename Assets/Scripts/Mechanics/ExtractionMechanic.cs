@@ -17,6 +17,7 @@ namespace CoffeeKing.Mechanics
         private bool active;
         private bool extracting;
         private float currentValue;
+        private float blinkTimer;
 
         public event Action<MechanicScoreResult> Completed;
 
@@ -34,6 +35,7 @@ namespace CoffeeKing.Mechanics
         {
             active = true;
             extracting = false;
+            blinkTimer = 0f;
             currentValue = config.ExtractionGaugeMin;
             if (sceneContext?.ShotGlassRoot != null)
             {
@@ -41,8 +43,20 @@ namespace CoffeeKing.Mechanics
                 sceneContext.ShotGlassRoot.gameObject.SetActive(true);
                 sceneContext.SetShotGlassVisual(SpriteAssetNames.ShotGlassEmpty, config.ShotGlassSize, config.CupEspressoColor);
             }
+
+            var buttonGroup = sceneContext.ExtractionButtonRenderer.transform.parent.gameObject;
+            buttonGroup.SetActive(true);
             sceneContext.ExtractionButtonRenderer.color = config.ExtractionButtonActiveColor;
-            sceneContext.ExtractionButtonRenderer.gameObject.SetActive(true);
+            if (sceneContext.ExtractionButtonLabel != null)
+            {
+                sceneContext.ExtractionButtonLabel.text = "BREW";
+                sceneContext.ExtractionButtonLabel.color = Color.white;
+            }
+            if (sceneContext.ExtractionButtonRingRenderer != null)
+            {
+                sceneContext.ExtractionButtonRingRenderer.color = ColorPalette.ExtractionButtonRing;
+            }
+
             sceneContext.GaugeView.SetVisible(true);
             sceneContext.GaugeView.Configure(
                 "Extraction",
@@ -50,7 +64,7 @@ namespace CoffeeKing.Mechanics
                 config.GaugeTargetColor,
                 config.ExtractionPerfectMin / config.ExtractionGaugeMax,
                 config.ExtractionPerfectMax / config.ExtractionGaugeMax);
-            sceneContext.GaugeView.SetValue(0f, "Tap to start");
+            sceneContext.GaugeView.SetValue(0f, string.Empty);
         }
 
         public void CancelStep()
@@ -68,10 +82,16 @@ namespace CoffeeKing.Mechanics
                 return;
             }
 
+            if (sceneContext?.GaugeView == null)
+            {
+                return;
+            }
+
             currentValue += config.ExtractionGaugeSpeed * Time.deltaTime;
             var normalized = currentValue / config.ExtractionGaugeMax;
-            sceneContext.GaugeView.SetValue(normalized, $"{Mathf.Clamp(currentValue, 0f, config.ExtractionGaugeMax):0.0}");
+            sceneContext.GaugeView.SetValue(normalized, string.Empty);
             UpdateShotGlassVisual(normalized);
+            UpdateBlink();
 
             if (currentValue >= config.ExtractionGaugeMax)
             {
@@ -99,8 +119,13 @@ namespace CoffeeKing.Mechanics
             if (!extracting)
             {
                 extracting = true;
+                blinkTimer = 0f;
                 sceneContext.ExtractionButtonRenderer.color = config.ExtractionButtonRunningColor;
-                sceneContext.GaugeView.SetValue(currentValue / config.ExtractionGaugeMax, "Brewing...");
+                if (sceneContext.ExtractionButtonLabel != null)
+                {
+                    sceneContext.ExtractionButtonLabel.text = "STOP";
+                }
+                sceneContext.GaugeView.SetValue(currentValue / config.ExtractionGaugeMax, string.Empty);
             }
             else
             {
@@ -137,11 +162,33 @@ namespace CoffeeKing.Mechanics
         {
             if (sceneContext?.ExtractionButtonRenderer != null)
             {
-                sceneContext.ExtractionButtonRenderer.gameObject.SetActive(false);
+                var buttonGroup = sceneContext.ExtractionButtonRenderer.transform.parent.gameObject;
+                buttonGroup.SetActive(false);
                 sceneContext.ExtractionButtonRenderer.color = config.ExtractionButtonIdleColor;
             }
 
             sceneContext?.GaugeView?.SetVisible(false);
+        }
+
+        private void UpdateBlink()
+        {
+            if (sceneContext?.ExtractionButtonRenderer == null)
+            {
+                return;
+            }
+
+            blinkTimer += Time.deltaTime * 4f;
+            var alpha = 0.6f + 0.4f * Mathf.Sin(blinkTimer * Mathf.PI);
+            var runColor = config.ExtractionButtonRunningColor;
+            sceneContext.ExtractionButtonRenderer.color = new Color(runColor.r, runColor.g, runColor.b, alpha);
+
+            if (sceneContext.ExtractionButtonRingRenderer != null)
+            {
+                var ringBase = ColorPalette.ExtractionButtonRing;
+                var ringGlow = config.ExtractionButtonRunningColor;
+                var t = 0.5f + 0.5f * Mathf.Sin(blinkTimer * Mathf.PI);
+                sceneContext.ExtractionButtonRingRenderer.color = Color.Lerp(ringBase, ringGlow, t);
+            }
         }
 
         private void UpdateShotGlassVisual(float normalized)

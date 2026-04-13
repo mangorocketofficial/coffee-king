@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using CoffeeKing.Util;
 
 namespace CoffeeKing.Core
 {
@@ -36,6 +37,7 @@ namespace CoffeeKing.Core
             Application.targetFrameRate = 60;
             Screen.orientation = ScreenOrientation.LandscapeLeft;
             Input.multiTouchEnabled = true;
+            SpriteFactory.ClearCache();
 
             EnsureGameManager();
         }

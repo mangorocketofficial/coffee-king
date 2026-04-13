@@ -53,7 +53,7 @@ namespace CoffeeKing.Mechanics
             portafilterRoot.rotation = Quaternion.identity;
             portafilterRoot.gameObject.SetActive(true);
             portafilterRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.PortafilterEmpty, config.PortafilterBodySize, config.PortafilterIdleColor);
-            portafilterRenderer.color = config.PortafilterIdleColor;
+            portafilterRenderer.color = Color.white;
 
             sceneContext.GrinderRenderer.gameObject.SetActive(true);
             sceneContext.GrinderRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.Grinder, config.GrinderSize, config.IngredientTrayColor);
@@ -130,8 +130,9 @@ namespace CoffeeKing.Mechanics
             {
                 state = GrindingState.ReadyToGrind;
                 activePointerId = int.MinValue;
-                portafilterRoot.position = sceneContext.GrinderPosition;
+                portafilterRoot.gameObject.SetActive(false);
                 sceneContext.GrinderRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.GrinderWithPortafilter, config.GrinderSize, config.IngredientTrayColor);
+                sceneContext.GrinderRenderer.color = Color.white;
                 sceneContext.SetStatus("Hold on the grinder to grind coffee.");
             }
         }
@@ -199,6 +200,7 @@ namespace CoffeeKing.Mechanics
             if (sceneContext?.GrinderRenderer != null)
             {
                 sceneContext.GrinderRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.Grinder, config.GrinderSize, config.IngredientTrayColor);
+                sceneContext.GrinderRenderer.color = Color.white;
             }
 
             sceneContext?.GaugeView?.SetVisible(false);

@@ -541,6 +541,267 @@ The reboot is successful if:
 
 ---
 
+## Release Readiness Plan
+
+> The reboot slices (Slice 1–4) established the playable MVP.
+> This section defines the remaining work required to meet minimum release quality.
+
+### Current MVP Completion Status
+
+The following reboot slices are complete:
+
+- [x] Slice 1: Iced Americano Core
+- [x] Slice 2: Iced Latte Branch
+- [x] Slice 3: Lid Finish
+- [ ] Slice 4: Rule Expansion (partial — base scoring done, advanced rules pending)
+
+Additionally implemented beyond the original plan:
+
+- Hot Americano and Hot Cafe Latte recipes
+- SteamMilk mechanic
+- HotWaterCup mechanic
+- 5-stage progression with all 4 drink types
+
+---
+
+### Release Phase 1: Sound
+
+Priority: **Critical**
+Reason: A silent game cannot ship. Sound is the single largest quality gap.
+
+#### Required Sound Effects
+
+- Grinding (continuous loop while held)
+- Tamping (short impact)
+- Portafilter lock (click/snap)
+- Extraction (drip/flow loop)
+- Milk steaming (hiss loop)
+- Water/milk pouring (liquid flow)
+- Lid snap (click)
+- Serving (slide/ding)
+- Customer arrival (bell/chime)
+- Customer timeout (warning tone)
+- Score feedback: Perfect, Good, Bad (distinct tones)
+- Stage clear / Stage fail (fanfare / sad tone)
+- UI button tap
+
+#### Required Music
+
+- BGM: at least 1 looping track (cafe atmosphere)
+
+#### Implementation
+
+- `AudioManager` already exists as a framework
+- Add `AudioClip` references and play calls at each mechanic completion event
+- Add BGM loop to `GameManager` on stage start
+
+---
+
+### Release Phase 2: Pause and App Lifecycle
+
+Priority: **Critical**
+Reason: Mobile apps must handle interruptions gracefully.
+
+#### Pause Screen
+
+- Pause button on HUD (top area)
+- Pause overlay with three options: Resume, Restart, Main Menu
+- `Time.timeScale = 0` on pause, `1` on resume
+- All customer patience timers must freeze during pause
+
+#### App Lifecycle
+
+- `OnApplicationPause(true)` triggers auto-pause
+- `OnApplicationFocus(false)` triggers auto-pause
+- Prevent state corruption when returning from background
+
+---
+
+### Release Phase 3: Save System
+
+Priority: **Critical**
+Reason: Players must retain progress between sessions.
+
+#### Data to Persist
+
+- Highest cleared stage index
+- Per-stage best score
+- Per-stage best star rating
+- Tutorial completion flags (per mechanic)
+
+#### Implementation
+
+- Use `PlayerPrefs` or JSON file via `Application.persistentDataPath`
+- Load on app start, save on stage complete
+- No cloud save required for initial release
+
+---
+
+### Release Phase 4: Stage Select Screen
+
+Priority: **High**
+Reason: Players need to replay stages and see progress.
+
+#### Requirements
+
+- Stage select screen between Title and Stage Intro
+- Show stages 1–5 as selectable nodes
+- Display star rating per stage (0–3 stars, or locked)
+- Locked stages shown as grayed out / padlocked
+- Unlock rule: clear previous stage with at least 1 star
+
+#### Flow Change
+
+```text
+Title → Stage Select → Stage Intro → Playing → Result → Stage Select
+```
+
+---
+
+### Release Phase 5: Tutorial Completion
+
+Priority: **High**
+Reason: New players must understand every mechanic on first encounter.
+
+#### Current Tutorial Coverage
+
+- [x] Grinding (gauge hold)
+- [x] Tamping (gauge hold)
+- [x] Portafilter Lock (rotation gesture)
+- [ ] Extraction (tap start / tap stop timing)
+- [ ] Steam Milk (temperature gauge)
+- [ ] Pour Shot (drag to cup)
+- [ ] Ingredient (tap to pour)
+- [ ] Lid (drag to cup)
+- [ ] Serving (drag to customer)
+
+#### Implementation Rule
+
+- Each mechanic shows a tutorial hint only on the player's first encounter
+- Track shown tutorials via save system flags
+- Tutorial hint must not block gameplay for more than 3 seconds
+
+---
+
+### Release Phase 6: UI Polish and Transitions
+
+Priority: **High**
+Reason: Visual polish is the difference between prototype and product.
+
+#### Screen Transitions
+
+- Fade in/out between all screen changes (Title, Stage Select, Stage Intro, Playing, Result)
+- Duration: 0.3–0.5 seconds
+
+#### In-Game Feedback
+
+- Score popup animation on mechanic completion (+points floating up)
+- Screen shake or flash on Bad grade
+- Particle effect on Perfect grade
+- Customer expression change (happy on serve, impatient on low patience)
+
+#### Result Screen Enhancement
+
+- Animated star reveal (one at a time)
+- Score counter roll-up animation
+
+---
+
+### Release Phase 7: Scoring Rule Expansion (Slice 4 Completion)
+
+Priority: **Medium**
+Reason: Adds gameplay depth but not required for basic playability.
+
+#### Wrong Drink Detection
+
+- Compare served drink type to customer order
+- If mismatch: zero points for that customer, penalty applied
+- Visual feedback: customer rejection animation
+
+#### Perfect Streak Bonus
+
+- Track consecutive Perfect grades across mechanics within a single drink
+- All-Perfect drink: bonus multiplier or flat bonus points
+
+#### No Mistake Bonus
+
+- End-of-stage bonus if no Bad grades were received
+- Displayed on result screen as a separate line item
+
+---
+
+### Release Phase 8: Settings Screen
+
+Priority: **Medium**
+Reason: Player comfort and accessibility.
+
+#### Options
+
+- BGM volume slider (0–100)
+- SFX volume slider (0–100)
+- Vibration toggle (on/off, mobile only)
+
+#### Access
+
+- Settings button on Title screen
+- Settings button on Pause screen
+
+---
+
+### Release Phase 9: Store Submission Preparation
+
+Priority: **Final step**
+Reason: Required for actual distribution.
+
+#### Android (Google Play)
+
+- App icon (512x512 and adaptive icon)
+- Splash screen with logo
+- Feature graphic (1024x500)
+- Screenshots (phone and tablet)
+- Store listing text (title, short description, full description)
+- Privacy policy URL
+- Content rating questionnaire
+- Target API level compliance
+- SafeArea handling for notch/cutout devices
+
+#### iOS (App Store) — if applicable
+
+- App icon set (all required sizes)
+- Launch screen storyboard
+- Screenshots (all required device sizes)
+- App Review information
+- Privacy nutrition labels
+
+#### Both Platforms
+
+- Test on at least 3 different screen aspect ratios (16:9, 19.5:9, 20:9)
+- Memory profiling: confirm no leaks on 10+ consecutive stages
+- Frame rate target: stable 60 FPS on mid-range devices
+
+---
+
+### Release Priority Summary
+
+| Phase | Area | Priority | Dependency |
+|-------|------|----------|------------|
+| R1 | Sound | Critical | None |
+| R2 | Pause + Lifecycle | Critical | None |
+| R3 | Save System | Critical | None |
+| R4 | Stage Select | High | R3 (needs save data) |
+| R5 | Tutorial Completion | High | R3 (needs tutorial flags) |
+| R6 | UI Polish | High | None |
+| R7 | Scoring Expansion | Medium | None |
+| R8 | Settings Screen | Medium | R1 (needs audio to control) |
+| R9 | Store Submission | Final | All above |
+
+R1, R2, R3 have no dependencies and can be developed in parallel.
+R4 and R5 depend on R3 for persistence.
+R8 depends on R1 for audio volume controls.
+R9 is the final gate after all other phases are stable.
+
+---
+
 ## Final Recommendation
 
 Treat this document as the new implementation baseline for future work,

@@ -10,6 +10,7 @@ namespace CoffeeKing.Mechanics
         private GestureDetector gestureDetector;
         private GrayboxSceneContext sceneContext;
         private bool active;
+        private SpriteRenderer targetRenderer;
 
         public event Action Completed;
 
@@ -19,19 +20,26 @@ namespace CoffeeKing.Mechanics
             gestureDetector = detector;
             sceneContext = context;
             Subscribe();
-            Hide();
+            HideAll();
         }
 
-        public void BeginStep()
+        public void BeginStep(SpriteRenderer sourceRenderer)
         {
             active = true;
-            sceneContext.WaterBottleRenderer.gameObject.SetActive(true);
+            targetRenderer = sourceRenderer;
+            HideAll();
+
+            if (targetRenderer != null)
+            {
+                targetRenderer.gameObject.SetActive(true);
+            }
         }
 
         public void CancelStep()
         {
             active = false;
-            Hide();
+            targetRenderer = null;
+            HideAll();
         }
 
         private void OnDestroy()
@@ -41,26 +49,32 @@ namespace CoffeeKing.Mechanics
 
         private void HandlePointerTapped(PointerGesture gesture)
         {
-            if (!active || sceneContext.WaterBottleRenderer == null)
+            if (!active || targetRenderer == null)
             {
                 return;
             }
 
-            if (!sceneContext.WaterBottleRenderer.bounds.Contains(gesture.WorldPosition))
+            if (!targetRenderer.bounds.Contains(gesture.WorldPosition))
             {
                 return;
             }
 
             active = false;
-            Hide();
+            HideAll();
+            targetRenderer = null;
             Completed?.Invoke();
         }
 
-        private void Hide()
+        private void HideAll()
         {
             if (sceneContext?.WaterBottleRenderer != null)
             {
                 sceneContext.WaterBottleRenderer.gameObject.SetActive(false);
+            }
+
+            if (sceneContext?.PitcherRenderer != null)
+            {
+                sceneContext.PitcherRenderer.gameObject.SetActive(false);
             }
         }
 

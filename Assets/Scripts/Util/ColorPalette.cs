@@ -21,9 +21,10 @@ namespace CoffeeKing.Util
         public static readonly Color CupVanilla = new Color(0.86f, 0.72f, 0.47f);
         public static readonly Color ServingAreaIdle = new Color(0.71f, 0.82f, 0.78f);
         public static readonly Color ServingAreaActive = new Color(0.34f, 0.74f, 0.55f);
-        public static readonly Color ExtractionButtonIdle = new Color(0.45f, 0.18f, 0.12f);
-        public static readonly Color ExtractionButtonActive = new Color(0.79f, 0.33f, 0.18f);
-        public static readonly Color ExtractionButtonRunning = new Color(0.98f, 0.76f, 0.20f);
+        public static readonly Color ExtractionButtonIdle = new Color(0.55f, 0.55f, 0.58f);
+        public static readonly Color ExtractionButtonActive = new Color(0.20f, 0.72f, 0.40f);
+        public static readonly Color ExtractionButtonRunning = new Color(0.90f, 0.25f, 0.20f);
+        public static readonly Color ExtractionButtonRing = new Color(0.40f, 0.40f, 0.43f);
         public static readonly Color GaugeBackground = new Color(0.20f, 0.18f, 0.16f);
         public static readonly Color GaugeFill = new Color(0.84f, 0.54f, 0.16f);
         public static readonly Color GaugeTarget = new Color(0.38f, 0.78f, 0.43f);

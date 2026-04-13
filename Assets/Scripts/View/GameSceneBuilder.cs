@@ -1,4 +1,5 @@
 using CoffeeKing.Core;
+using CoffeeKing.UI;
 using CoffeeKing.Util;
 using UnityEngine;
 
@@ -13,6 +14,7 @@ namespace CoffeeKing.View
         public Transform CupRoot { get; set; }
         public Transform ShotGlassRoot { get; set; }
         public Transform SteamWandRoot { get; set; }
+        public Transform LidRoot { get; set; }
         public Vector3 MachineSlotPosition { get; set; }
         public Vector3 CupAnchorPosition { get; set; }
         public Vector3 ServingAreaPosition { get; set; }
@@ -22,16 +24,21 @@ namespace CoffeeKing.View
         public Vector3 ShotGlassPosition { get; set; }
         public Vector3 SteamWandSpawnPosition { get; set; }
         public Vector3 SteamWandSnapPosition { get; set; }
+        public Vector3 LidPosition { get; set; }
         public SpriteRenderer MachineRenderer { get; set; }
         public SpriteRenderer MachineSlotRenderer { get; set; }
         public SpriteRenderer CupRenderer { get; set; }
         public SpriteRenderer ShotGlassRenderer { get; set; }
         public SpriteRenderer ServingAreaRenderer { get; set; }
         public SpriteRenderer ExtractionButtonRenderer { get; set; }
+        public SpriteRenderer ExtractionButtonRingRenderer { get; set; }
+        public TextMesh ExtractionButtonLabel { get; set; }
         public SpriteRenderer GrinderRenderer { get; set; }
         public SpriteRenderer TamperRenderer { get; set; }
         public SpriteRenderer WaterBottleRenderer { get; set; }
+        public SpriteRenderer HotWaterDispenserRenderer { get; set; }
         public SpriteRenderer PitcherRenderer { get; set; }
+        public SpriteRenderer LidRenderer { get; set; }
         public SpriteRenderer SyrupBottleRenderer { get; set; }
         public SpriteRenderer SteamWandRenderer { get; set; }
         public TextMesh InstructionText { get; set; }
@@ -42,6 +49,7 @@ namespace CoffeeKing.View
         public TextMesh RoundText { get; set; }
         public TextMesh FeedbackText { get; set; }
         public GaugeView GaugeView { get; set; }
+        public HUDView HUDView { get; set; }
 
         public void SetCupVisual(string assetName, Vector2 size, Color tint)
         {
@@ -51,7 +59,7 @@ namespace CoffeeKing.View
             }
 
             CupRenderer.sprite = SpriteFactory.Load(assetName, size, tint);
-            CupRenderer.color = tint;
+            CupRenderer.color = Color.white;
         }
 
         public void SetShotGlassVisual(string assetName, Vector2 size, Color tint)
@@ -62,7 +70,7 @@ namespace CoffeeKing.View
             }
 
             ShotGlassRenderer.sprite = SpriteFactory.Load(assetName, size, tint);
-            ShotGlassRenderer.color = tint;
+            ShotGlassRenderer.color = Color.white;
         }
 
         public void SetMachineVisual(string assetName, Vector2 size, Color tint)
@@ -73,7 +81,7 @@ namespace CoffeeKing.View
             }
 
             MachineRenderer.sprite = SpriteFactory.Load(assetName, size, tint);
-            MachineRenderer.color = tint;
+            MachineRenderer.color = Color.white;
         }
 
         public void SetInstruction(string message)
@@ -82,6 +90,8 @@ namespace CoffeeKing.View
             {
                 InstructionText.text = message;
             }
+
+            HUDView?.SetInstruction(message);
         }
 
         public void SetStatus(string message)
@@ -90,6 +100,8 @@ namespace CoffeeKing.View
             {
                 StatusText.text = message;
             }
+
+            HUDView?.SetStatus(message);
         }
 
         public void SetQueueSummary(string message)
@@ -106,6 +118,8 @@ namespace CoffeeKing.View
             {
                 ActiveOrderText.text = message;
             }
+
+            HUDView?.SetCurrentOrder(message);
         }
 
         public void SetScore(string message)
@@ -131,6 +145,8 @@ namespace CoffeeKing.View
                 FeedbackText.text = message;
                 FeedbackText.color = color;
             }
+
+            HUDView?.SetFeedback(message, color);
         }
     }
 
@@ -159,9 +175,9 @@ namespace CoffeeKing.View
             context.CustomerLayer = customerLayer;
             context.OverlayLayer = overlayLayer;
 
-            CreateSpriteObject("Wall", SpriteAssetNames.BackgroundWall, backgroundRoot, config.WallPosition, config.WallSize, config.WallColor, -10);
-            CreateSpriteObject("Counter", SpriteAssetNames.BackgroundCounter, backgroundRoot, config.CounterPosition, config.CounterSize, config.CounterColor, -9);
-            CreateSpriteObject("CounterEdge", null, backgroundRoot, new Vector3(0f, -1.2f, 0f), new Vector2(18f, 0.45f), config.CounterEdgeColor, -8);
+            CreateSpriteObjectExact("Wall", SpriteAssetNames.BackgroundWall, backgroundRoot, config.WallPosition, config.WallSize, config.WallColor, -30);
+            CreateSpriteObjectExact("CounterEdge", SpriteAssetNames.BackgroundCounterEdge, backgroundRoot, config.CounterEdgePosition, config.CounterEdgeSize, config.CounterEdgeColor, -20);
+            CreateSpriteObjectExact("Counter", SpriteAssetNames.BackgroundCounter, backgroundRoot, config.CounterPosition, config.CounterSize, config.CounterColor, -10);
 
             context.MachineRenderer = CreateSpriteObject(
                 "Machine",
@@ -179,7 +195,7 @@ namespace CoffeeKing.View
                 config.MachineSlotPosition,
                 config.MachineSlotSize,
                 config.MachineSlotIdleColor,
-                1);
+                2);
 
             context.GrinderRenderer = CreateSpriteObject(
                 "Grinder",
@@ -188,8 +204,7 @@ namespace CoffeeKing.View
                 config.GrinderPosition,
                 config.GrinderSize,
                 config.IngredientTrayColor,
-                1);
-            CreateSpriteLabel("GrinderLabel", context.GrinderRenderer.transform, "G", ColorPalette.InstructionText, 0.42f, 3);
+                3);
 
             context.TamperRenderer = CreateSpriteObject(
                 "Tamper",
@@ -199,7 +214,6 @@ namespace CoffeeKing.View
                 config.TamperSize,
                 config.MachineSlotSnapColor,
                 12);
-            CreateSpriteLabel("TamperLabel", context.TamperRenderer.transform, "T", ColorPalette.InstructionText, 0.34f, 14);
             context.TamperRenderer.gameObject.SetActive(false);
 
             context.WaterBottleRenderer = CreateSpriteObject(
@@ -210,16 +224,23 @@ namespace CoffeeKing.View
                 config.WaterBottleSize,
                 config.CupLatteColor,
                 9);
-            CreateSpriteLabel("WaterBottleLabel", context.WaterBottleRenderer.transform, "W", ColorPalette.InstructionText, 0.34f, 12);
             context.WaterBottleRenderer.gameObject.SetActive(false);
+
+            context.HotWaterDispenserRenderer = CreateSpriteObject(
+                "HotWaterDispenser",
+                SpriteAssetNames.HotWaterDispenser,
+                propsRoot,
+                config.HotWaterDispenserPosition,
+                config.HotWaterDispenserSize,
+                config.CupLatteColor,
+                1);
 
             context.CupRoot = new GameObject("Cup").transform;
             context.CupRoot.SetParent(interactiveRoot, false);
             context.CupRoot.position = config.CupPosition;
             context.CupRenderer = context.CupRoot.gameObject.AddComponent<SpriteRenderer>();
             context.SetCupVisual(SpriteAssetNames.CupPlasticEmpty, config.CupSize, config.CupEmptyColor);
-            context.CupRenderer.sortingOrder = 10;
-            CreateSpriteLabel("CupLabel", context.CupRenderer.transform, "C", ColorPalette.InstructionText, 0.34f, 13);
+            context.CupRenderer.sortingOrder = 6;
             context.CupRoot.gameObject.SetActive(false);
             context.CupAnchorPosition = config.CupPosition;
 
@@ -228,9 +249,19 @@ namespace CoffeeKing.View
             context.ShotGlassRoot.position = config.ShotGlassPosition;
             context.ShotGlassRenderer = context.ShotGlassRoot.gameObject.AddComponent<SpriteRenderer>();
             context.SetShotGlassVisual(SpriteAssetNames.ShotGlassEmpty, config.ShotGlassSize, config.CupEspressoColor);
-            context.ShotGlassRenderer.sortingOrder = 11;
+            context.ShotGlassRenderer.sortingOrder = 14;
             context.ShotGlassRoot.gameObject.SetActive(false);
             context.ShotGlassPosition = config.ShotGlassPosition;
+
+            context.LidRoot = new GameObject("Lid").transform;
+            context.LidRoot.SetParent(interactiveRoot, false);
+            context.LidRoot.position = config.LidPosition;
+            context.LidRenderer = context.LidRoot.gameObject.AddComponent<SpriteRenderer>();
+            context.LidRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.DomeLid, config.IcedLidSize, config.CupEmptyColor);
+            context.LidRenderer.color = Color.white;
+            context.LidRenderer.sortingOrder = 16;
+            context.LidRoot.gameObject.SetActive(false);
+            context.LidPosition = config.LidPosition;
 
             context.PitcherRenderer = CreateSpriteObject(
                 "Pitcher",
@@ -239,7 +270,7 @@ namespace CoffeeKing.View
                 config.PitcherPosition,
                 config.PitcherSize,
                 config.PitcherColor,
-                8);
+                12);
             context.PitcherRenderer.gameObject.SetActive(false);
 
             context.SyrupBottleRenderer = CreateSpriteObject(
@@ -249,7 +280,7 @@ namespace CoffeeKing.View
                 config.SyrupBottlePosition,
                 config.SyrupBottleSize,
                 config.SyrupBottleColor,
-                8);
+                12);
             context.SyrupBottleRenderer.gameObject.SetActive(false);
 
             context.SteamWandRoot = new GameObject("SteamWand").transform;
@@ -257,31 +288,60 @@ namespace CoffeeKing.View
             context.SteamWandRoot.position = config.SteamWandSpawnPosition;
             context.SteamWandRenderer = context.SteamWandRoot.gameObject.AddComponent<SpriteRenderer>();
             context.SteamWandRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.SteamWand, config.SteamWandSize, config.SteamWandColor);
-            context.SteamWandRenderer.color = config.SteamWandColor;
-            context.SteamWandRenderer.sortingOrder = 9;
+            context.SteamWandRenderer.color = Color.white;
+            context.SteamWandRenderer.sortingOrder = 15;
             context.SteamWandRenderer.gameObject.SetActive(false);
             context.SteamWandSpawnPosition = config.SteamWandSpawnPosition;
             context.SteamWandSnapPosition = config.SteamWandSnapPosition;
 
             context.ServingAreaRenderer = CreateSpriteObject(
                 "ServingArea",
-                null,
+                SpriteAssetNames.CupTray,
                 propsRoot,
                 config.ServingAreaPosition,
                 config.ServingAreaSize,
                 config.ServingAreaIdleColor,
-                -1);
+                1);
             context.ServingAreaPosition = config.ServingAreaPosition;
 
-            context.ExtractionButtonRenderer = CreateSpriteObject(
-                "ExtractionButton",
-                null,
-                interactiveRoot,
-                config.ExtractionButtonPosition,
-                config.ExtractionButtonSize,
-                config.ExtractionButtonIdleColor,
-                9);
-            context.ExtractionButtonRenderer.gameObject.SetActive(false);
+            var extractionButtonRoot = new GameObject("ExtractionButtonGroup");
+            extractionButtonRoot.transform.SetParent(interactiveRoot, false);
+            extractionButtonRoot.transform.position = config.ExtractionButtonPosition;
+
+            var ringSize = config.ExtractionButtonSize + new Vector2(0.18f, 0.18f);
+            var ringGo = new GameObject("ExtractionRing");
+            ringGo.transform.SetParent(extractionButtonRoot.transform, false);
+            ringGo.transform.localPosition = Vector3.zero;
+            var ringRenderer = ringGo.AddComponent<SpriteRenderer>();
+            ringRenderer.sprite = SpriteFactory.CreateEllipse("ExtractionRing", ringSize, ColorPalette.ExtractionButtonRing);
+            ringRenderer.color = ColorPalette.ExtractionButtonRing;
+            ringRenderer.sortingOrder = 12;
+            context.ExtractionButtonRingRenderer = ringRenderer;
+
+            var btnGo = new GameObject("ExtractionButton");
+            btnGo.transform.SetParent(extractionButtonRoot.transform, false);
+            btnGo.transform.localPosition = Vector3.zero;
+            var btnRenderer = btnGo.AddComponent<SpriteRenderer>();
+            btnRenderer.sprite = SpriteFactory.CreateEllipse("ExtractionButton", config.ExtractionButtonSize, config.ExtractionButtonIdleColor);
+            btnRenderer.color = config.ExtractionButtonIdleColor;
+            btnRenderer.sortingOrder = 13;
+            context.ExtractionButtonRenderer = btnRenderer;
+
+            var labelGo = new GameObject("ExtractionLabel");
+            labelGo.transform.SetParent(extractionButtonRoot.transform, false);
+            labelGo.transform.localPosition = Vector3.zero;
+            var label = labelGo.AddComponent<TextMesh>();
+            label.text = "BREW";
+            label.fontSize = 64;
+            label.characterSize = 0.07f;
+            label.anchor = TextAnchor.MiddleCenter;
+            label.alignment = TextAlignment.Center;
+            label.color = Color.white;
+            label.fontStyle = FontStyle.Bold;
+            labelGo.GetComponent<MeshRenderer>().sortingOrder = 14;
+            context.ExtractionButtonLabel = label;
+
+            extractionButtonRoot.SetActive(false);
 
             context.GaugeView = GaugeView.Create(propsRoot, config.GaugePosition, config.GaugeSize, config.GaugeFrameColor, config.GaugeBackgroundColor);
 
@@ -362,6 +422,14 @@ namespace CoffeeKing.View
                 TextAlignment.Center,
                 50);
 
+            SetTextVisible(context.InstructionText, false);
+            SetTextVisible(context.StatusText, false);
+            SetTextVisible(context.RoundText, false);
+            SetTextVisible(context.ScoreText, false);
+            SetTextVisible(context.QueueText, false);
+            SetTextVisible(context.ActiveOrderText, false);
+            SetTextVisible(context.FeedbackText, false);
+
             context.MachineSlotPosition = config.MachineSlotPosition;
             context.GrinderPosition = config.GrinderPosition;
             context.PortafilterWorkbenchPosition = config.PortafilterWorkbenchPosition;
@@ -391,8 +459,30 @@ namespace CoffeeKing.View
 
             var renderer = spriteObject.AddComponent<SpriteRenderer>();
             renderer.sprite = assetName == null ? SpriteFactory.CreateRect(name, size, color) : SpriteFactory.Load(assetName, size, color);
-            renderer.color = color;
+            renderer.color = assetName == null ? color : Color.white;
             renderer.sortingOrder = sortingOrder;
+
+            return renderer;
+        }
+
+        private static SpriteRenderer CreateSpriteObjectExact(
+            string name,
+            string assetName,
+            Transform parent,
+            Vector3 position,
+            Vector2 size,
+            Color color,
+            int sortingOrder)
+        {
+            var renderer = CreateSpriteObject(name, assetName, parent, position, size, color, sortingOrder);
+            if (renderer.sprite != null)
+            {
+                var bounds = renderer.sprite.bounds.size;
+                if (bounds.x > 0.0001f && bounds.y > 0.0001f)
+                {
+                    renderer.transform.localScale = new Vector3(size.x / bounds.x, size.y / bounds.y, 1f);
+                }
+            }
 
             return renderer;
         }
@@ -426,30 +516,19 @@ namespace CoffeeKing.View
             return textMesh;
         }
 
-        private static TextMesh CreateSpriteLabel(
-            string name,
-            Transform parent,
-            string content,
-            Color color,
-            float characterSize,
-            int sortingOrder)
+        private static void SetTextVisible(TextMesh textMesh, bool isVisible)
         {
-            var textObject = new GameObject(name);
-            textObject.transform.SetParent(parent, false);
-            textObject.transform.localPosition = Vector3.zero;
+            if (textMesh == null)
+            {
+                return;
+            }
 
-            var textMesh = textObject.AddComponent<TextMesh>();
-            textMesh.text = content;
-            textMesh.color = color;
-            textMesh.fontSize = 64;
-            textMesh.characterSize = characterSize;
-            textMesh.anchor = TextAnchor.MiddleCenter;
-            textMesh.alignment = TextAlignment.Center;
-
-            var meshRenderer = textObject.GetComponent<MeshRenderer>();
-            meshRenderer.sortingOrder = sortingOrder;
-
-            return textMesh;
+            var meshRenderer = textMesh.GetComponent<MeshRenderer>();
+            if (meshRenderer != null)
+            {
+                meshRenderer.enabled = isVisible;
+            }
         }
+
     }
 }

@@ -44,7 +44,7 @@ namespace CoffeeKing.Mechanics
             portafilterRoot.position = sceneContext.PortafilterWorkbenchPosition;
             portafilterRoot.gameObject.SetActive(true);
             portafilterRenderer.sprite = SpriteFactory.Load(SpriteAssetNames.PortafilterFilled, config.PortafilterBodySize, config.PortafilterIdleColor);
-            portafilterRenderer.color = config.PortafilterIdleColor;
+            portafilterRenderer.color = Color.white;
 
             sceneContext.TamperRenderer.gameObject.SetActive(true);
             sceneContext.TamperRenderer.color = config.MachineSlotSnapColor;

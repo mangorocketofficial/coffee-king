@@ -1,145 +1,181 @@
 using System;
-using CoffeeKing.GameInput;
 using CoffeeKing.Scoring;
 using CoffeeKing.StageFlow;
 using CoffeeKing.Util;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace CoffeeKing.UI
 {
     public sealed class ResultScreenView
     {
-        private readonly Transform root;
-        private readonly SpriteRenderer nextButtonRenderer;
-        private readonly SpriteRenderer retryButtonRenderer;
-        private readonly TextMesh titleText;
-        private readonly TextMesh scoreText;
-        private readonly TextMesh starsText;
-        private readonly TextMesh summaryText;
-        private readonly TextMesh nextLabelText;
-        private readonly TextMesh retryLabelText;
-        private readonly GestureDetector gestureDetector;
+        private readonly RectTransform root;
+        private readonly Text titleText;
+        private readonly Text scoreText;
+        private readonly Text earningsText;
+        private readonly Text summaryText;
+        private readonly Button nextButton;
+        private readonly Button retryButton;
+        private readonly Text nextLabelText;
+        private readonly Text retryLabelText;
+        private readonly ResultAnimator resultAnimator;
 
         private bool isVisible;
-        private bool canAdvance;
 
-        public ResultScreenView(Transform root, GestureDetector gestureDetector)
+        private ResultScreenView(
+            RectTransform root,
+            Text titleText,
+            Text scoreText,
+            Text earningsText,
+            Text summaryText,
+            Button nextButton,
+            Button retryButton,
+            Text nextLabelText,
+            Text retryLabelText,
+            ResultAnimator resultAnimator)
         {
             this.root = root;
-            this.gestureDetector = gestureDetector;
-            nextButtonRenderer = root.Find("NextButton").GetComponent<SpriteRenderer>();
-            retryButtonRenderer = root.Find("RetryButton").GetComponent<SpriteRenderer>();
-            titleText = root.Find("TitleText").GetComponent<TextMesh>();
-            scoreText = root.Find("ScoreText").GetComponent<TextMesh>();
-            starsText = root.Find("StarsText").GetComponent<TextMesh>();
-            summaryText = root.Find("SummaryText").GetComponent<TextMesh>();
-            nextLabelText = root.Find("NextButton/Label").GetComponent<TextMesh>();
-            retryLabelText = root.Find("RetryButton/Label").GetComponent<TextMesh>();
+            this.titleText = titleText;
+            this.scoreText = scoreText;
+            this.earningsText = earningsText;
+            this.summaryText = summaryText;
+            this.nextButton = nextButton;
+            this.retryButton = retryButton;
+            this.nextLabelText = nextLabelText;
+            this.retryLabelText = retryLabelText;
+            this.resultAnimator = resultAnimator;
 
+            nextButton.onClick.AddListener(HandleNextClicked);
+            retryButton.onClick.AddListener(HandleRetryClicked);
             root.gameObject.SetActive(false);
-            gestureDetector.PointerTapped += HandlePointerTapped;
         }
 
         public event Action NextRequested;
         public event Action RetryRequested;
 
-        public void Show(StageResult result, string summary, bool showNextButton)
+        public static ResultScreenView Create(Transform parent, CoffeeKing.GameInput.GestureDetector gestureDetector)
+        {
+            var canvasRoot = new GameObject("ResultScreenCanvas");
+            canvasRoot.transform.SetParent(parent, false);
+
+            var canvas = canvasRoot.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 700;
+
+            var scaler = canvasRoot.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+            canvasRoot.AddComponent<GraphicRaycaster>();
+
+            var root = UIBuilder.CreateStretchRoot("ResultScreen", canvasRoot.transform);
+
+            var backdrop = UIBuilder.CreateImage("Backdrop", root, new Color(0.11f, 0.08f, 0.06f, 0.82f));
+            UIBuilder.Stretch(backdrop.rectTransform);
+
+            var panel = UIBuilder.CreateImage("Panel", root, new Color(0.96f, 0.93f, 0.88f, 0.98f));
+            SetRect(panel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-420f, -320f), new Vector2(420f, 320f));
+
+            var accent = UIBuilder.CreateImage("Accent", panel.transform, new Color(0.27f, 0.18f, 0.11f, 1f));
+            SetRect(accent.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -18f), new Vector2(0f, 0f));
+
+            var titleText = UIBuilder.CreateText("TitleText", panel.transform, string.Empty, 54, new Color(0.20f, 0.14f, 0.10f), TextAnchor.MiddleCenter);
+            titleText.fontStyle = FontStyle.Bold;
+            SetRect(titleText.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(32f, -86f), new Vector2(-32f, -26f));
+
+            var scoreCard = UIBuilder.CreateImage("ScoreCard", panel.transform, new Color(0.90f, 0.86f, 0.79f, 1f));
+            SetRect(scoreCard.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(32f, -162f), new Vector2(-32f, -92f));
+
+            var scoreText = UIBuilder.CreateText("ScoreText", scoreCard.transform, string.Empty, 30, new Color(0.20f, 0.14f, 0.10f), TextAnchor.MiddleCenter);
+            UIBuilder.Stretch(scoreText.rectTransform);
+            scoreText.rectTransform.offsetMin = new Vector2(20f, 6f);
+            scoreText.rectTransform.offsetMax = new Vector2(-20f, -6f);
+
+            var earningsCard = UIBuilder.CreateImage("EarningsCard", panel.transform, new Color(0.85f, 0.92f, 0.86f, 1f));
+            SetRect(earningsCard.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(32f, -238f), new Vector2(-32f, -168f));
+
+            var earningsText = UIBuilder.CreateText("EarningsText", earningsCard.transform, string.Empty, 30, new Color(0.13f, 0.42f, 0.20f), TextAnchor.MiddleCenter);
+            earningsText.fontStyle = FontStyle.Bold;
+            UIBuilder.Stretch(earningsText.rectTransform);
+            earningsText.rectTransform.offsetMin = new Vector2(20f, 6f);
+            earningsText.rectTransform.offsetMax = new Vector2(-20f, -6f);
+
+            var summaryPanel = UIBuilder.CreateImage("SummaryPanel", panel.transform, new Color(0.98f, 0.97f, 0.93f, 1f));
+            SetRect(summaryPanel.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(32f, 92f), new Vector2(-32f, -252f));
+
+            var summaryText = UIBuilder.CreateText("SummaryText", summaryPanel.transform, string.Empty, 26, ColorPalette.SecondaryText, TextAnchor.UpperLeft);
+            UIBuilder.Stretch(summaryText.rectTransform);
+            summaryText.rectTransform.offsetMin = new Vector2(24f, 20f);
+            summaryText.rectTransform.offsetMax = new Vector2(-24f, -20f);
+
+            var retryButton = UIBuilder.CreateButton("RetryButton", panel.transform, "Retry", new Color(0.74f, 0.48f, 0.20f), Color.white);
+            SetRect(retryButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(-280f, 24f), new Vector2(-20f, 84f));
+
+            var nextButton = UIBuilder.CreateButton("NextButton", panel.transform, "Next Day", new Color(0.29f, 0.67f, 0.45f), Color.white);
+            SetRect(nextButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(20f, 24f), new Vector2(280f, 84f));
+
+            var nextLabelText = nextButton.GetComponentInChildren<Text>();
+            var retryLabelText = retryButton.GetComponentInChildren<Text>();
+
+            var resultAnimator = canvasRoot.AddComponent<ResultAnimator>();
+            resultAnimator.Initialize(scoreText, earningsText);
+
+            return new ResultScreenView(root, titleText, scoreText, earningsText, summaryText, nextButton, retryButton, nextLabelText, retryLabelText, resultAnimator);
+        }
+
+        public void Show(StageResult result, string summary)
         {
             isVisible = true;
-            canAdvance = showNextButton;
             root.gameObject.SetActive(true);
 
-            titleText.text = result.Passed ? $"{result.Stage.DisplayName} Clear" : $"{result.Stage.DisplayName} Failed";
-            scoreText.text = $"Score {result.Score}/{result.MaxScore}  {(result.Percentage * 100f):0}%";
-            starsText.text = $"Stars {StarRating.ToDisplayString(result.Stars)}";
+            titleText.text = $"{result.Stage.DisplayName} Complete";
+            titleText.color = new Color(0.20f, 0.41f, 0.24f);
+
             summaryText.text = summary;
 
-            nextButtonRenderer.gameObject.SetActive(showNextButton);
-            nextLabelText.gameObject.SetActive(showNextButton);
-            nextLabelText.text = result.Stage.Number >= 5 ? "Replay" : "Next Stage";
+            nextButton.gameObject.SetActive(true);
+            nextLabelText.gameObject.SetActive(true);
+            nextLabelText.text = "Next Day";
             retryLabelText.text = "Retry";
+
+            resultAnimator.PlayReveal(result.Score, result.MaxScore, result.DailyEarnings, result.TotalEarnings);
         }
 
         public void Hide()
         {
             isVisible = false;
-            canAdvance = false;
+            resultAnimator.StopAnimation();
             root.gameObject.SetActive(false);
         }
 
         public void Dispose()
         {
-            gestureDetector.PointerTapped -= HandlePointerTapped;
+            nextButton.onClick.RemoveListener(HandleNextClicked);
+            retryButton.onClick.RemoveListener(HandleRetryClicked);
         }
 
-        private void HandlePointerTapped(PointerGesture gesture)
+        private void HandleNextClicked()
         {
-            if (!isVisible)
-            {
-                return;
-            }
-
-            if (retryButtonRenderer.bounds.Contains(gesture.WorldPosition))
-            {
-                RetryRequested?.Invoke();
-                return;
-            }
-
-            if (canAdvance && nextButtonRenderer.bounds.Contains(gesture.WorldPosition))
+            if (isVisible)
             {
                 NextRequested?.Invoke();
             }
         }
 
-        public static ResultScreenView Create(Transform parent, GestureDetector gestureDetector)
+        private void HandleRetryClicked()
         {
-            var root = new GameObject("ResultScreen").transform;
-            root.SetParent(parent, false);
-
-            CreateRect("Backdrop", root, Vector3.zero, new Vector2(12f, 7.2f), new Color(0.10f, 0.08f, 0.06f, 0.92f), 90);
-            CreateRect("Panel", root, Vector3.zero, new Vector2(8.4f, 5.8f), new Color(0.91f, 0.86f, 0.77f), 91);
-            CreateText("TitleText", root, new Vector3(0f, 2.0f, 0f), string.Empty, ColorPalette.InstructionText, 0.12f, 94);
-            CreateText("ScoreText", root, new Vector3(0f, 1.25f, 0f), string.Empty, ColorPalette.SecondaryText, 0.09f, 94);
-            CreateText("StarsText", root, new Vector3(0f, 0.55f, 0f), string.Empty, ColorPalette.HighlightGood, 0.11f, 94);
-
-            var summary = CreateText("SummaryText", root, new Vector3(0f, -0.65f, 0f), string.Empty, ColorPalette.SecondaryText, 0.075f, 94);
-            summary.anchor = TextAnchor.UpperCenter;
-
-            var retryButton = CreateRect("RetryButton", root, new Vector3(-1.7f, -2.1f, 0f), new Vector2(2.4f, 0.8f), new Color(0.76f, 0.50f, 0.20f), 92);
-            CreateText("Label", retryButton.transform, Vector3.zero, "Retry", Color.white, 0.09f, 94);
-
-            var nextButton = CreateRect("NextButton", root, new Vector3(1.7f, -2.1f, 0f), new Vector2(2.4f, 0.8f), new Color(0.29f, 0.67f, 0.45f), 92);
-            CreateText("Label", nextButton.transform, Vector3.zero, "Next", Color.white, 0.09f, 94);
-
-            return new ResultScreenView(root, gestureDetector);
+            if (isVisible)
+            {
+                RetryRequested?.Invoke();
+            }
         }
 
-        private static SpriteRenderer CreateRect(string name, Transform parent, Vector3 localPosition, Vector2 size, Color color, int sortingOrder)
+        private static void SetRect(RectTransform rectTransform, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
         {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = localPosition;
-            var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = SpriteFactory.CreateRect(name, size, color);
-            renderer.color = color;
-            renderer.sortingOrder = sortingOrder;
-            return renderer;
-        }
-
-        private static TextMesh CreateText(string name, Transform parent, Vector3 localPosition, string text, Color color, float characterSize, int sortingOrder)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = localPosition;
-            var textMesh = go.AddComponent<TextMesh>();
-            textMesh.text = text;
-            textMesh.color = color;
-            textMesh.fontSize = 64;
-            textMesh.characterSize = characterSize;
-            textMesh.anchor = TextAnchor.MiddleCenter;
-            textMesh.alignment = TextAlignment.Center;
-            go.GetComponent<MeshRenderer>().sortingOrder = sortingOrder;
-            return textMesh;
+            rectTransform.anchorMin = anchorMin;
+            rectTransform.anchorMax = anchorMax;
+            rectTransform.offsetMin = offsetMin;
+            rectTransform.offsetMax = offsetMax;
         }
     }
 }

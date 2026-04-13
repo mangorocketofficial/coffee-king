@@ -31,7 +31,7 @@ namespace CoffeeKing.Mechanics
         public void BeginStep()
         {
             active = true;
-            sceneContext.ServingAreaRenderer.color = config.ServingAreaActiveColor;
+            sceneContext.ServingAreaRenderer.color = Color.white;
             sceneContext.CupRoot.position = sceneContext.CupAnchorPosition;
         }
 
@@ -52,7 +52,7 @@ namespace CoffeeKing.Mechanics
 
             if (sceneContext?.ServingAreaRenderer != null)
             {
-                sceneContext.ServingAreaRenderer.color = config.ServingAreaIdleColor;
+                sceneContext.ServingAreaRenderer.color = Color.white;
             }
         }
 
@@ -100,7 +100,7 @@ namespace CoffeeKing.Mechanics
             {
                 sceneContext.CupRoot.position = sceneContext.ServingAreaPosition;
                 active = false;
-                sceneContext.ServingAreaRenderer.color = config.ServingAreaIdleColor;
+                sceneContext.ServingAreaRenderer.color = Color.white;
                 Served?.Invoke();
             }
             else
